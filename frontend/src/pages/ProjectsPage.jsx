@@ -1,0 +1,153 @@
+import React, { useState } from "react";
+import { Button, Flex, useToast } from "@chakra-ui/react";
+import TableComponent from "../components/TableComponent";
+import CreateProjectModal from "../components/CreateProjectModal";
+import SearchAndFilter from "../components/SearchAndFilter";
+import Pagination from "../components/Pagination";
+import { useAuth } from "../context/AuthContext";
+import { useProject } from "../context/ProjectContext";
+import API from "../services/api";
+
+const ProjectsPage = () => {
+  const { user } = useAuth();
+  const { projects, fetchProjects } = useProject();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+  const [editProject, setEditProject] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  const toast = useToast();
+
+  // ✅ Filter Logic
+  const filteredProjects = projects
+    .filter((p) => {
+      if (user?.role === "staff") {
+        return (
+          Array.isArray(p.assignedStaff) &&
+          p.assignedStaff.some(
+            (staff) =>
+              staff &&
+              staff._id &&
+              user.id &&
+              staff._id.toString() === user.id.toString()
+          )
+        );
+      }
+      return true;
+    })
+    .filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter((p) =>
+      status === "All" ? true : p.status === status
+    )
+    .map((p) => ({
+      _id: p._id,
+      Name: p.name,
+      Status: p.status,
+      AssignedStaff: Array.isArray(p.assignedStaff)
+        ? p.assignedStaff.map((s) => s.name).join(", ")
+        : "None",
+      original: p,
+    }));
+
+  // ✅ Pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
+  const currentProjects = filteredProjects.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  // ✅ Delete Project
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/projects/${id}`);
+
+      toast({
+        title: "Project deleted",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // refresh global projects (Navbar + pages)
+      fetchProjects();
+
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const columns = ["Name", "Status", "AssignedStaff"];
+
+  return (
+    <>
+      <Flex justify="space-between" mb={4}>
+        <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>
+          Projects List
+        </h2>
+
+        {user?.permissions?.create && (
+          <Button colorScheme="blue" onClick={() => setIsOpen(true)}>
+            Create Project
+          </Button>
+        )}
+      </Flex>
+
+      {/* Search + Status Filter */}
+      <SearchAndFilter
+        search={search}
+        setSearch={setSearch}
+        status={status}
+        setStatus={setStatus}
+        options={["All", "Pending", "In Progress", "Completed"]}
+      />
+
+      <TableComponent
+        columns={columns}
+        data={currentProjects}
+        onEdit={
+          user?.permissions?.update
+            ? (row) => {
+                setEditProject(row.original);
+                setIsOpen(true);
+              }
+            : null
+        }
+        onDelete={
+          user?.permissions?.delete ? handleDelete : null
+        }
+      />
+
+      <Pagination
+        totalItems={filteredProjects.length}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+      />
+
+      <CreateProjectModal
+        isOpen={isOpen}
+        onClose={() => {
+          setIsOpen(false);
+          setEditProject(null);
+        }}
+        refreshProjects={fetchProjects}
+        editData={editProject}
+      />
+    </>
+  );
+};
+
+export default ProjectsPage;
