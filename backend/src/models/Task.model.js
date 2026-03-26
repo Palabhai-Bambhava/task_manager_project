@@ -29,6 +29,7 @@ const taskSchema = new mongoose.Schema(
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
+      required: true,
     },
   },
   { timestamps: true },

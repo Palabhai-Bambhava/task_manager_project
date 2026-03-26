@@ -51,7 +51,19 @@ exports.createRole = async (req, res) => {
 // ✅ GET ALL ROLES (🔥 FIX: add isActive)
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find({}, "name permissions isActive");
+    let roles;
+
+    if (req.user.role === "superadmin") {
+      // superadmin → all roles
+      roles = await Role.find({}, "name permissions isActive");
+    } else {
+      // owner/admin → only their company roles
+      roles = await Role.find(
+        { company: req.user.company, isActive: true },
+        "name permissions isActive"
+      );
+    }
+
     res.json(roles);
   } catch (err) {
     res.status(500).json({

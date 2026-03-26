@@ -155,9 +155,33 @@ const deleteCompany = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+const checkSubscriptionStatus = async (req, res) => {
+  try {
+    const company = await Company.findById(req.user.company);
+
+    if (!company?.subscription) {
+      return res.json({ active: false });
+    }
+
+    const isExpired =
+      new Date() > new Date(company.subscription.endDate);
+
+    res.json({
+      active: !isExpired,
+      endDate: company.subscription.endDate,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
 module.exports = {
   registerCompany,
   getCompanies,
   updateCompany,
   deleteCompany,
+  checkSubscriptionStatus,
 };

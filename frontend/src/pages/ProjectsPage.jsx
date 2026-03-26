@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { Button, Flex, useToast } from "@chakra-ui/react";
 import TableComponent from "../components/TableComponent";
 import CreateProjectModal from "../components/CreateProjectModal";
@@ -7,10 +7,12 @@ import Pagination from "../components/Pagination";
 import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
 import API from "../services/api";
+import { useCompany } from "../context/CompanyContext";
 
 const ProjectsPage = () => {
   const { user } = useAuth();
   const { projects, fetchProjects } = useProject();
+  const { selectedCompany } = useCompany();
 
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -22,37 +24,55 @@ const ProjectsPage = () => {
   const toast = useToast();
 
   // ✅ Filter Logic
-  const filteredProjects = projects
-    .filter((p) => {
-      if (user?.role === "staff") {
-        return (
-          Array.isArray(p.assignedStaff) &&
-          p.assignedStaff.some(
-            (staff) =>
-              staff &&
-              staff._id &&
-              user.id &&
-              staff._id.toString() === user.id.toString()
-          )
-        );
-      }
-      return true;
-    })
-    .filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter((p) =>
-      status === "All" ? true : p.status === status
-    )
-    .map((p) => ({
-      _id: p._id,
-      Name: p.name,
-      Status: p.status,
-      AssignedStaff: Array.isArray(p.assignedStaff)
-        ? p.assignedStaff.map((s) => s.name).join(", ")
-        : "None",
-      original: p,
-    }));
+  // ✅ Filter Logic (FINAL CLEAN VERSION)
+  let filteredProjects = [...projects];
+
+  // 1️⃣ Company filter (MOST IMPORTANT)
+  if (selectedCompany) {
+    filteredProjects = filteredProjects.filter(
+      (p) => p.company?._id?.toString() === selectedCompany?._id?.toString(),
+    );
+  }
+
+  // 2️⃣ Staff access filter
+  filteredProjects = filteredProjects.filter((p) => {
+    if (user?.role === "staff") {
+      return (
+        Array.isArray(p.assignedStaff) &&
+        p.assignedStaff.some(
+          (staff) => staff?._id?.toString() === user?._id?.toString(),
+        )
+      );
+    }
+    return true;
+  });
+
+  // 3️⃣ Search filter (safe)
+  if (search) {
+    filteredProjects = filteredProjects.filter((p) =>
+      (p.name || "").toLowerCase().includes(search.toLowerCase()),
+    );
+  }
+
+  // 4️⃣ Status filter
+  if (status !== "All") {
+    filteredProjects = filteredProjects.filter((p) => p.status === status);
+  }
+
+  // 5️⃣ Map for table
+  filteredProjects = filteredProjects.map((p) => ({
+    _id: p._id,
+    Name: p.name,
+    Status: p.status,
+    AssignedStaff: Array.isArray(p.assignedStaff)
+      ? p.assignedStaff.map((s) => s.name).join(", ")
+      : "None",
+    original: p,
+  }));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, status, selectedCompany]);
 
   // ✅ Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -60,7 +80,7 @@ const ProjectsPage = () => {
 
   const currentProjects = filteredProjects.slice(
     indexOfFirstItem,
-    indexOfLastItem
+    indexOfLastItem,
   );
 
   // ✅ Delete Project
@@ -77,7 +97,6 @@ const ProjectsPage = () => {
 
       // refresh global projects (Navbar + pages)
       fetchProjects();
-
     } catch (err) {
       toast({
         title: "Delete failed",
@@ -93,9 +112,7 @@ const ProjectsPage = () => {
   return (
     <>
       <Flex justify="space-between" mb={4}>
-        <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>
-          Projects List
-        </h2>
+        <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>Projects List</h2>
 
         {user?.permissions?.create && (
           <Button colorScheme="blue" onClick={() => setIsOpen(true)}>
@@ -124,9 +141,7 @@ const ProjectsPage = () => {
               }
             : null
         }
-        onDelete={
-          user?.permissions?.delete ? handleDelete : null
-        }
+        onDelete={user?.permissions?.delete ? handleDelete : null}
       />
 
       <Pagination

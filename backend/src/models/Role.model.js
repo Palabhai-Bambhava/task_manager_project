@@ -7,10 +7,11 @@ const roleSchema = new mongoose.Schema(
     required: true
   },
 
-  company:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"Company"
-  },
+  company: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Company",
+  required: true,
+},
 
   permissions:{
     create:{type:Boolean,default:false},

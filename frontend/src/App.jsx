@@ -15,6 +15,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import RegisterCompany from "./pages/RegisterCompany";
 import CompanyPage from "./pages/CompanyPage";
 import theme from "./theme";
+import SubscriptionPage from "./pages/SubscriptionPage";
 
 function App() {
   return (
@@ -51,7 +52,7 @@ function App() {
                 <Route path="issues" element={<IssuesPage />} />
                 <Route path="documents" element={<DocumentsPage />} />
                 <Route path="company" element={<CompanyPage/>}/>
-                
+                <Route path="subscription" element={<SubscriptionPage />} />
               </Route>
             </Routes>
           </BrowserRouter>

@@ -18,7 +18,6 @@ const {
 router.post(
   "/",
   protect,
-  authorize("superadmin"),
   authorizePermission("create"),
   createTask
 );
@@ -27,7 +26,6 @@ router.post(
 router.get(
   "/",
   protect,
-  authorize("superadmin", "admin", "staff"),
   authorizePermission("read"),
   getTasks
 );
@@ -39,7 +37,6 @@ router.put("/:id/status", protect, updateTaskStatus);
 router.put(
   "/:id",
   protect,
-  authorize("superadmin"),
   authorizePermission("update"),
   updateTask
 );
@@ -48,7 +45,6 @@ router.put(
 router.delete(
   "/:id",
   protect,
-  authorize("superadmin"),
   authorizePermission("delete"),
   deleteTask
 );

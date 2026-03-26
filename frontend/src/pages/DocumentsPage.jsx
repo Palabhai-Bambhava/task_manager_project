@@ -8,6 +8,7 @@ import SearchAndFilter from "../components/SearchAndFilter";
 import { getDocuments, deleteDocument } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
+import { useCompany } from "../context/CompanyContext";
 
 // ✅ USE VARIABLE LIST
 import { VariableSizeList as List } from "react-window";
@@ -15,6 +16,7 @@ import { VariableSizeList as List } from "react-window";
 const DocumentsPage = () => {
   const { user } = useAuth();
   const { selectedProject } = useProject();
+  const { selectedCompany } = useCompany();
   const toast = useToast();
 
   const [documents, setDocuments] = useState([]);

@@ -5,12 +5,14 @@ import CreateTaskModal from "../components/CreateTaskModal";
 import { getTasks, deleteTask } from "../services/api";
 import SearchAndFilter from "../components/SearchAndFilter";
 import Pagination from "../components/Pagination";
+import { useCompany } from "../context/CompanyContext";
 import { useProject } from "../context/ProjectContext";
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
 
 const TasksPage = () => {
   const { user } = useAuth();
+  const { selectedCompany } = useCompany();
   const { selectedProject } = useProject();
   const toast = useToast();
 
@@ -37,6 +39,7 @@ const TasksPage = () => {
         project: t.project,
         Project: t.project ? t.project.name : "No Project",
         assignedTo: t.assignedTo,
+        company: t.company,
         original: t,
       }));
       setTasks(tableData);
@@ -60,10 +63,17 @@ const TasksPage = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [selectedCompany]);
 
   // ---------------- FILTER LOGIC (StaffPage style) ----------------
   let filteredTasks = [...tasks];
+
+  // 1️⃣ Company filter
+  if (selectedCompany) {
+    filteredTasks = filteredTasks.filter(
+      (t) => t.company?._id?.toString() === selectedCompany?._id?.toString(),
+    );
+  }
 
   // 1️⃣ Search filter
   if (search) {
@@ -84,28 +94,41 @@ const TasksPage = () => {
   }
 
   // 3️⃣ Project & role filter
+  // 3️⃣ Project & role filter (fixed)
   filteredTasks = filteredTasks.filter((t) => {
-    if (!selectedProject && user.role === "superadmin") return true;
-    if (!selectedProject && user.role === "staff") {
-      return t.assignedTo?._id === user._id;
+    if (user.role === "superadmin") {
+      // superadmin → see all projects or filtered by selectedProject
+      if (!selectedProject) return true;
+      if (!t.project) return false;
+      return t.project._id.toString() === selectedProject._id.toString();
     }
-    if (selectedProject) {
+
+    if (user.role === "owner") {
+      // owner → see all tasks in selected company
+      if (!selectedCompany) return true;
+      return t.company?._id?.toString() === selectedCompany?._id?.toString();
+    }
+
+    if (user.role === "staff") {
+      // staff → only assigned & optional project filter
+      if (!selectedProject) {
+        return t.assignedTo?._id?.toString() === user._id.toString();
+      }
       if (!t.project) return false;
       const projectMatch =
         t.project._id.toString() === selectedProject._id.toString();
-      if (!projectMatch) return false;
-      if (user.role === "staff") {
-        return t.assignedTo?._id?.toString() === user._id.toString();
-      }
-      return true; // superadmin
+      return (
+        projectMatch && t.assignedTo?._id?.toString() === user._id.toString()
+      );
     }
+
     return false;
   });
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, status, selectedProject]);
+  }, [search, status, selectedProject, selectedCompany]);
 
   // ---------------- PAGINATION ----------------
   const indexOfLastItem = currentPage * itemsPerPage;

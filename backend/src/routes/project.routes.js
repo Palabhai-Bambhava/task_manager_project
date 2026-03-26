@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const protect = require("../middleware/auth.middleware");
-const authorize = require("../middleware/authorizeRoles");
+const authorizePermission = require("../middleware/authorizePermission");
 
 const {
   getProjects,
@@ -13,15 +13,15 @@ const {
 
 
 // GET PROJECTS
-router.get("/", protect, getProjects);
+router.get("/", protect,authorizePermission("read"), getProjects);
 
 // CREATE PROJECT
-router.post("/", protect, authorize("superadmin"), createProject);
+router.post("/", protect, authorizePermission("create"), createProject);
 
 // UPDATE PROJECT
-router.put("/:id", protect, authorize("superadmin"), updateProject);
+router.put("/:id", protect, authorizePermission("update"), updateProject);
 
 // DELETE PROJECT
-router.delete("/:id", protect, authorize("superadmin"), deleteProject);
+router.delete("/:id", protect, authorizePermission("delete"), deleteProject);
 
 module.exports = router;

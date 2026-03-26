@@ -72,4 +72,45 @@ export const getCompanies = () => API.get("/companies");
 export const updateCompany = (id, data) => API.put(`/companies/${id}`, data);
 export const deleteCompany = (id) => API.delete(`/companies/${id}`);
 
+// ✅ GET ALL PLANS
+export const getPlans = () => API.get("/subscription/all");
+
+// ✅ CREATE PLAN (SUPERADMIN)
+export const createPlan = (data) =>
+  API.post("/subscription", {
+    ...data,
+    price: Number(data.price), // 🔥 FIX
+    modules: data.modules.map((m) => ({
+      moduleName: m.moduleName,
+      limit: Number(m.limit), // 🔥 FIX
+    })),
+  });
+
+// ✅ UPDATE PLAN
+export const updatePlan = (id, data) =>
+  API.put(`/subscription/${id}`, {
+    ...data,
+    price: Number(data.price), // 🔥 FIX
+    modules: data.modules.map((m) => ({
+      moduleName: m.moduleName,
+      limit: Number(m.limit), // 🔥 FIX
+    })),
+  });
+
+// ✅ DELETE PLAN
+export const deletePlan = (id) =>
+  API.delete(`/subscription/${id}`);
+
+// ✅ APPLY PLAN (OWNER)
+export const applyPlan = (planId) =>
+  API.post("/subscription/apply", { planId });
+
+// ✅ GET COMPANY SUBSCRIPTION
+export const getMyCompany = () =>
+  API.get("/subscription/my-company");
+
+// ✅ GET MODULE LIST (DROPDOWN USE)
+export const getModules = () =>
+  API.get("/subscription/modules");
+
 export default API;

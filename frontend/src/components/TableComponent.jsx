@@ -81,6 +81,16 @@ const TableComponent = ({
                           🗑️
                         </Button>
                       )}
+                      {!onEdit && !onDelete && row.onApply && (
+                        <Button
+                          size="sm"
+                          colorScheme={row.isActive ? "green" : "purple"}
+                          isDisabled={row.isActive}
+                          onClick={() => row.onApply(row.original)}
+                        >
+                          {row.isActive ? "Activated" : "Choose Plan"}
+                        </Button>
+                      )}
                     </HStack>
                   </Td>
                 )}

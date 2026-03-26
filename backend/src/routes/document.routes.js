@@ -11,28 +11,43 @@ const {
 } = require("../controllers/document.controller");
 
 const protect = require("../middleware/auth.middleware");
-const authorize = require("../middleware/authorizeRoles");
+const authorizePermission = require("../middleware/authorizePermission");
 
-router.get("/", protect, getDocuments);
+// READ
+router.get("/", protect, authorizePermission("read"), getDocuments);
 
+// CREATE
 router.post(
   "/",
   protect,
-  authorize("superadmin"),
+  authorizePermission("create"),
   upload.single("file"),
   createDocument
 );
 
+// UPDATE
 router.put(
   "/:id",
   protect,
-  authorize("superadmin"),
+  authorizePermission("update"),
   upload.single("file"),
   updateDocument
 );
 
-router.delete("/:id", protect, authorize("superadmin"), deleteDocument);
+// DELETE
+router.delete(
+  "/:id",
+  protect,
+  authorizePermission("delete"),
+  deleteDocument
+);
 
-router.put("/access/:docId", protect, authorize("superadmin"), updateAccess);
+// ACCESS CONTROL (only superadmin)
+router.put(
+  "/access/:docId",
+  protect,
+  authorizePermission("update"),
+  updateAccess
+);
 
 module.exports = router;

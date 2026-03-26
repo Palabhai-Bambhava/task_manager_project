@@ -17,6 +17,7 @@ const projectRoutes = require("./src/routes/project.routes");
 const issueRoutes = require("./src/routes/issue.routes");
 const documentRoutes = require("./src/routes/document.routes"); 
 const companyRoutes = require("./src/routes/company.routes");
+const subscription=require("./src/routes/subscription.routes");
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/companies", companyRoutes);
+app.use("/api/subscription", subscription);
 
 
 // ✅ Test Route

@@ -3,10 +3,7 @@ import TableComponent from "../components/TableComponent";
 import SearchAndFilter from "../components/SearchAndFilter";
 import { useAuth } from "../context/AuthContext";
 import Pagination from "../components/Pagination";
-import {
-  getStaff,
-  deleteStaff as deleteStaffAPI,
-} from "../services/api";
+import { getStaff, deleteStaff as deleteStaffAPI } from "../services/api";
 import {
   Box,
   Button,
@@ -15,6 +12,8 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import CreateStaffModal from "../components/CreateStaffModal";
+import { useCompany } from "../context/CompanyContext";
+import { useProject } from "../context/ProjectContext";
 
 const StaffPage = () => {
   const { user } = useAuth();
@@ -25,6 +24,8 @@ const StaffPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { selectedCompany } = useCompany();
+  const { selectedProject } = useProject();
   const toast = useToast();
   // const itemsPerPage = 5;
 
@@ -46,24 +47,55 @@ const StaffPage = () => {
 
   useEffect(() => {
     fetchStaff();
-  }, []);
+  }, [selectedCompany]);
 
   // ✅ Filter logic
-  const filteredStaff = staff
-    .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
-    .filter((s) =>
-      status === "All" ? true : status === "Active" ? s.isActive : !s.isActive
-    )
-    .map((u, index) => ({
-      _id: u._id,
-      "#": index + 1,
-      Name: u.name,
-      Email: u.email,
-      Phone: u.phone || "-",
-      Role: u.role,
-      Status: u.isActive ? "Active" : "Inactive",
-      original: u, // for edit modal
-    }));
+  // ✅ Filter logic (FINAL CLEAN VERSION)
+  let filteredStaff = [...staff];
+
+  // 1️⃣ Company filter
+  if (selectedCompany) {
+    filteredStaff = filteredStaff.filter(
+      (s) => s.company?._id?.toString() === selectedCompany?._id?.toString(),
+    );
+  }
+
+  // 2️⃣ Project filter (optional - agar field hai to hi chalega)
+  if (selectedProject) {
+    filteredStaff = filteredStaff.filter(
+      (s) => s.project?._id?.toString() === selectedProject?._id?.toString(),
+    );
+  }
+
+  // 3️⃣ Search filter
+  if (search) {
+    filteredStaff = filteredStaff.filter((s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  }
+
+  // 4️⃣ Status filter
+  if (status !== "All") {
+    filteredStaff = filteredStaff.filter((s) =>
+      status === "Active" ? s.isActive : !s.isActive,
+    );
+  }
+
+  // 5️⃣ Map for table
+  filteredStaff = filteredStaff.map((u, index) => ({
+    _id: u._id,
+    "#": index + 1,
+    Name: u.name,
+    Email: u.email,
+    Phone: u.phone || "-",
+    Role: u.role,
+    Status: u.isActive ? "Active" : "Inactive",
+    original: u,
+  }));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, status, selectedCompany, selectedProject]);
 
   // ✅ Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -103,7 +135,12 @@ const StaffPage = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={4}
+      >
         <Heading size="md">Staff</Heading>
 
         {user?.permissions?.create && (

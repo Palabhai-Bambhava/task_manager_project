@@ -34,9 +34,8 @@ const CreateDocumentModal = ({
   const [staffList, setStaffList] = useState([]);
   const [docMode, setDocMode] = useState("text"); // text | docs
   const [pages, setPages] = useState([""]);
-  const [hoverIndex, setHoverIndex] = useState(null);
-  const [activePage, setActivePage] = useState(null);
-
+  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [isHoveringPage, setIsHoveringPage] = useState(false);
   const pageRefs = useRef([]);
   const modules = useMemo(
     () => ({
@@ -45,23 +44,21 @@ const CreateDocumentModal = ({
           addPage: {
             key: 13,
             shiftKey: true,
-            handler: () => {
-              if (activePage === null) return false;
-
+            handler: (range, context) => {
               setPages((prev) => {
                 const newPages = [...prev];
-                newPages.splice(activePage + 1, 0, "");
+                newPages.splice(activePageIndex + 1, 0, "");
                 return newPages;
               });
 
-              setActivePage((prev) => prev + 1);
+              setActivePageIndex((prev) => prev + 1);
               return false;
             },
           },
         },
       },
     }),
-    [activePage],
+    [activePageIndex],
   );
 
   const [form, setForm] = useState({
@@ -139,7 +136,7 @@ const CreateDocumentModal = ({
         setPages([savedContent || ""]);
       }
 
-      setHoverIndex(null); // ✅ important
+      setActivePageIndex(0); // ✅ important
     }
   }, [editData, isOpen, showEditor]);
 
@@ -312,7 +309,7 @@ const CreateDocumentModal = ({
     });
 
     setPages([""]); // ✅ RESET pages
-    setHoverIndex(null); // ✅ RESET hover
+    setActivePageIndex(0); // ✅ RESET hover
     setDocMode("text"); // ✅ RESET mode
 
     onClose();
@@ -344,17 +341,17 @@ const CreateDocumentModal = ({
       newPages.splice(index + 1, 0, secondHalf);
 
       setPages(newPages);
-      setHoverIndex(index + 1);
+      setActivePageIndex(index + 1);
     }
   };
 
   const handleGeneratePDF = async () => {
     const pdf = new jsPDF("p", "mm", "a4");
 
-    // 🔥 TEMP container (ONLY content)
     const tempDiv = document.createElement("div");
     tempDiv.style.background = "#fff";
     tempDiv.style.padding = "20px";
+    tempDiv.style.width = "794px";
 
     if (docMode === "text") {
       tempDiv.innerHTML = form.editorContent;
@@ -364,20 +361,29 @@ const CreateDocumentModal = ({
 
     document.body.appendChild(tempDiv);
 
-    const canvas = await html2canvas(tempDiv, {
-      scale: 2,
-    });
-
+    const canvas = await html2canvas(tempDiv, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
 
     const imgWidth = 210;
+    const pageHeight = 297;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
 
     pdf.save(`${form.name || "document"}.pdf`);
 
-    document.body.removeChild(tempDiv); // cleanup
+    document.body.removeChild(tempDiv);
   };
 
   return (
@@ -468,72 +474,61 @@ const CreateDocumentModal = ({
             </FormControl>
           )}
           {showEditor && docMode === "docs" && (
-            <div style={{ maxHeight: "500px", overflowY: "auto" }}>
-              {/* 🔥 GLOBAL EDITOR (PAGE KE BAHAR) */}
-              {activePage !== null && (
-                <div
-                  onMouseLeave={() => setActivePage(null)}
-                  style={{
-                    position: "fixed", // 🔥 MAIN CHANGE
-                    top: 0,
-                    left: 0,
-                    width: "100vw",
-                    height: "100vh",
-                    background: "#fff",
-                    zIndex: 9999,
-                    padding: "40px",
-                  }}
-                >
-                  <ReactQuill
-                    ref={(el) => (pageRefs.current[activePage] = el)}
-                    theme="snow"
-                    modules={modules} // ✅ SHIFT+ENTER WORK karega
-                    value={pages[activePage]}
-                    onChange={(value) => {
-                      const updated = [...pages];
-                      updated[activePage] = value;
-                      setPages(updated);
-                    }}
-                    style={{ height: "90vh" }}
-                  />
-                </div>
-              )}
+            <div
+              style={{ maxHeight: "80vh", overflowY: "auto", padding: "20px" }}
+            >
               {pages.map((page, index) => (
                 <div
                   key={index}
-                  style={{ position: "relative" }}
-                  onMouseEnter={() => setActivePage(index)}
+                  style={{
+                    width: "794px",
+                    minHeight: "1123px",
+                    margin: "30px auto",
+                    background: "#fff",
+                    padding: "40px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)", // 👈 important
+                    borderRadius: "8px", // 👈 smooth look
+                  }}
                 >
-                  <div
-                    id={`page-${index}`}
-                    style={{
-                      width: "794px",
-                      minHeight: "1123px",
-                      margin: "20px auto",
-                      background: "#fff",
-                      padding: "40px",
-                      boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-                      cursor: "text",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {/* NORMAL CONTENT */}
-                    <div
-                      style={{
-                        minHeight: "1000px",
-                        wordBreak: "break-word",
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: pages[index] || "<p>Start typing...</p>",
+                  <FormControl mb={2}>
+                    <FormLabel>Page {index + 1}</FormLabel>
+
+                    <ReactQuill
+                      theme="snow"
+                      modules={modules}
+                      value={page}
+                      onFocus={() => setActivePageIndex(index)}
+                      onChange={(value) => {
+                        const updated = [...pages];
+                        updated[index] = value;
+                        setPages(updated);
                       }}
                     />
-                  </div>
+                  </FormControl>
+
+                  {/* DELETE BUTTON */}
+                  {pages.length > 1 && (
+                    <Button
+                      size="xs"
+                      colorScheme="red"
+                      onClick={() => {
+                        const updated = pages.filter((_, i) => i !== index);
+                        setPages(updated);
+                        setActivePageIndex(0);
+                      }}
+                    >
+                      Delete Page
+                    </Button>
+                  )}
                 </div>
               ))}
 
+              {/* ADD PAGE */}
               <div style={{ textAlign: "center", marginTop: "20px" }}>
-                <Button onClick={() => setPages([...pages, ""])}>
+                <Button
+                  colorScheme="green"
+                  onClick={() => setPages([...pages, ""])}
+                >
                   + Add Page
                 </Button>
               </div>

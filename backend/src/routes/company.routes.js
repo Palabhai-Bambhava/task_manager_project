@@ -15,4 +15,5 @@ router.post("/register", registerCompany);
 router.put("/:id", protect, updateCompany);
 router.delete("/:id", protect, deleteCompany);
 
+
 module.exports = router;

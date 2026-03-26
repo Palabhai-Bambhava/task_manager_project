@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User.model");
 const sendEmail = require("../utils/sendEmail");
+const checkLimit = require("../utils/checkLimit");
 
 const createStaff = async (req, res) => {
   try {
@@ -9,7 +10,15 @@ const createStaff = async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ message: "Name and email required" });
     }
+    const companyId = req.user.company;
 
+    const allowed = await checkLimit(companyId, "staff");
+
+    if (!allowed) {
+      return res.status(403).json({
+        message: "Staff limit reached",
+      });
+    }
     // ⭐ PHONE VALIDATION
     if (phone && !/^[0-9]{10}$/.test(phone)) {
       return res.status(400).json({
@@ -42,6 +51,7 @@ const createStaff = async (req, res) => {
       password: hashedPassword,
       role: role || "staff",
       isActive: isActive !== undefined ? isActive : true,
+      company: companyId,
     });
 
     // 📧 Send Email
@@ -68,17 +78,35 @@ const createStaff = async (req, res) => {
 
 const getStaff = async (req, res) => {
   try {
-    if (req.user.role === "staff") {
-      const staff = await User.findById(req.user._id).select(
-        "_id name email role phone isActive",
-      );
+    let staff;
 
-      return res.json([staff]);
+    if (req.user.role === "staff") {
+      staff = await User.find({ _id: req.user._id })
+        .select("_id name email role phone isActive company");
+      return res.json(staff);
     }
 
-    const staff = await User.find({
-      role: { $in: ["staff", "admin"] },
-    }).select("_id name email role phone isActive");
+    // ✅ OWNER: only own company
+    if (req.user.role === "owner") {
+      staff = await User.find({
+        company: req.user.company,
+        role: { $in: ["staff", "admin"] },
+      }).select("_id name email role phone isActive company");
+      return res.json(staff);
+    }
+
+    // ✅ SUPERADMIN: check query param company
+    if (req.user.role === "superadmin" && req.query.company) {
+      staff = await User.find({
+        company: req.query.company,
+        role: { $in: ["staff", "admin"] },
+      }).select("_id name email role phone isActive company");
+    } else {
+      // all staff
+      staff = await User.find({
+        role: { $in: ["staff", "admin"] },
+      }).select("_id name email role phone isActive company");
+    }
 
     res.json(staff);
   } catch (error) {

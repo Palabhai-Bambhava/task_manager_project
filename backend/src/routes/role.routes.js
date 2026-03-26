@@ -19,7 +19,7 @@ router.post(
 router.get(
   "/",
   protect,
-  authorize("superadmin", "admin"),
+  authorize("superadmin", "admin", "owner"),
   roleController.getRoles
 );
 

@@ -1,16 +1,25 @@
 const Task = require("../models/Task.model");
 const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
+const checkLimit = require("../utils/checkLimit");
 
 // 🔹 Create Task (superadmin)
 const createTask = async (req, res) => {
   try {
-
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log("VALIDATION ERRORS:", errors.array());
       return res.status(400).json({ errors: errors.array() });
+    }
+
+    const companyId = req.user.company;
+
+    const allowed = await checkLimit(companyId, "task");
+
+    if (!allowed) {
+      return res.status(403).json({
+        message: "Task limit reached",
+      });
     }
 
     const { title, description, assignedTo, status, project } = req.body;
@@ -37,6 +46,7 @@ const createTask = async (req, res) => {
       assignedTo,
       project,
       createdBy: req.user._id,
+      company: companyId,
     });
 
     // populate fields separately
@@ -60,11 +70,14 @@ const getTasks = async (req, res) => {
       tasks = await Task.find({ assignedTo: req.user._id })
         .populate("assignedTo", "name email")
         .populate("project", "name");
-    } else {
-      // Superadmin: all tasks
-      tasks = await Task.find()
+    } else if (req.user.role === "superadmin" || req.user.role === "owner") {
+      // Superadmin or Owner: all tasks
+      tasks = await Task.find({ company: req.user.company }) // only company tasks
         .populate("assignedTo", "name email")
-        .populate("project", "name"); 
+        .populate("project", "name");
+    } else {
+      // default fallback
+      tasks = [];
     }
 
     res.json(tasks);
@@ -123,7 +136,7 @@ const updateTask = async (req, res) => {
     if (description) task.description = description;
     if (assignedTo) task.assignedTo = assignedTo;
     if (status) task.status = status;
-    if (project) task.project = project; 
+    if (project) task.project = project;
 
     await task.save();
 

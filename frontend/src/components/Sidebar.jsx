@@ -24,6 +24,7 @@ import {
   MdDescription,
   MdMenu,
    MdBusiness,
+   MdSubscriptions,
 } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
 
@@ -36,6 +37,7 @@ const links = [
   { path: "/dashboard/issues", label: "Issue", icon: MdBugReport },
   { path: "/dashboard/documents", label: "Document", icon: MdDescription },
   { path: "/dashboard/company", label: "Company", icon: MdBusiness },
+  { path: "/dashboard/subscription", label: "Subscription", icon: MdSubscriptions },
 ];
 
 const SidebarContent = ({ onClose }) => {

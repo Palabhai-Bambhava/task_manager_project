@@ -218,11 +218,15 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
           <FormControl mb={3}>
             <FormLabel>Role</FormLabel>
             <Select name="role" value={form.role} onChange={handleChange}>
-              {roles.map((r) => (
-                <option key={r._id} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
+              {roles.length === 0 ? (
+                <option value="staff">staff</option>
+              ) : (
+                roles.map((r) => (
+                  <option key={r._id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))
+              )}
             </Select>
           </FormControl>
 

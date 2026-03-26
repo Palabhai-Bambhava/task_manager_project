@@ -10,7 +10,7 @@ const subscriptionPlanSchema = new mongoose.Schema(
 
     billingCycle: {
       type: String,
-      enum: ["monthly", "yearly"],
+      enum: ["Monthly", "Quarterly", "Half-Yearly", "Yearly"],
       required: true,
     },
 
@@ -22,7 +22,16 @@ const subscriptionPlanSchema = new mongoose.Schema(
 
     modules: [
       {
-        type: String, 
+        moduleName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        limit: {
+          type: Number,
+          required: true,
+          min: 0, // 🔥 prevents negative
+        },
       },
     ],
 
@@ -31,9 +40,7 @@ const subscriptionPlanSchema = new mongoose.Schema(
       default: true,
     },
   },
-  {
-    timestamps: true, 
-  }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("SubscriptionPlan", subscriptionPlanSchema);

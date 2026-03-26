@@ -1,4 +1,5 @@
 const Project = require("../models/project.model");
+const checkLimit = require("../utils/checkLimit");
 
 // GET PROJECTS
 const getProjects = async (req, res) => {
@@ -7,26 +8,22 @@ const getProjects = async (req, res) => {
 
     let query = {};
 
-    // filter by company
+    // Filter by company if provided
     if (company) {
       query.company = company;
+    } else if (req.user.role !== "superadmin") {
+      // For owner/staff: only show projects of their company
+      query.company = req.user.company;
     }
 
-    let projects;
+    // Staff can only see projects assigned to them
+    if (req.user.role === "staff") {
+      query.assignedStaff = req.user._id;
+    }
 
-    // superadmin -> all projects
-    if (req.user.role === "superadmin") {
-      projects = await Project.find().populate("assignedStaff", "name email")
+    const projects = await Project.find(query)
+      .populate("assignedStaff", "name email")
       .populate("company", "name");
-    }
-
-    // staff -> only assigned
-    else {
-      projects = await Project.find({
-        assignedStaff: req.user._id,
-      }).populate("assignedStaff", "name email")
-      .populate("company", "name");
-    }
 
     res.status(200).json(projects);
   } catch (error) {
@@ -37,18 +34,28 @@ const getProjects = async (req, res) => {
 // CREATE PROJECT
 const createProject = async (req, res) => {
   try {
-    if (req.user.role !== "superadmin") {
+    // if (req.user.role !== "superadmin") {
+    //   return res.status(403).json({
+    //     message: "Only superadmin can create project",
+    //   });
+    // }
+    const companyId = req.user.company; // ✅ NEW
+
+    // 🔥 CHECK PLAN LIMIT
+    const allowed = await checkLimit(companyId, "project");
+
+    if (!allowed) {
       return res.status(403).json({
-        message: "Only superadmin can create project",
+        message: "Project limit reached. Upgrade your plan.",
       });
     }
-
     const { name, status, assignedStaff, } = req.body;
 
     const project = new Project({
       name,
       status,
       assignedStaff,
+      company: companyId,
     });
 
     await project.save();

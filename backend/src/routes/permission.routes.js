@@ -10,7 +10,7 @@ const {  createPermission,
   deletePermission,}= require("../controllers/permission.controller");
 
 router.post("/", protect, authorize("superadmin"), createPermission);
-router.get("/", protect, getPermissions);
+router.get("/", protect,authorize("superadmin"), getPermissions);
 router.put("/:id", protect, authorize("superadmin"), updatePermission);
 router.delete("/:id", protect, authorize("superadmin"), deletePermission);
 

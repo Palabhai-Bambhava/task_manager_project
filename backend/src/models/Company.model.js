@@ -41,8 +41,33 @@ const companySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    subscription: {
+      planId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SubscriptionPlan",
+      },
+      modules: [
+        {
+          moduleName: {
+            type: String,
+            required: true,
+          },
+          limit: {
+            type: Number,
+            required: true,
+          },
+        },
+      ],
+      startDate: Date,
+      endDate: Date,
+      status: {
+        type: String,
+        enum: ["active", "expired"],
+        default: "active",
+      },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Company", companySchema);

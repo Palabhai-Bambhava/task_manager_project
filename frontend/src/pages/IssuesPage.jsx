@@ -8,9 +8,11 @@ import { useAuth } from "../context/AuthContext";
 import SearchAndFilter from "../components/SearchAndFilter";
 import Pagination from "../components/Pagination";
 import BulkIssueModal from "../components/BulkIssueModal";
+import { useCompany } from "../context/CompanyContext";
 
 const IssuesPage = () => {
   const { selectedProject } = useProject();
+  const { selectedCompany } = useCompany();
   const { user } = useAuth();
   const toast = useToast();
 
@@ -24,28 +26,39 @@ const IssuesPage = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const fetchIssues = async () => {
-    const res = await getIssues();
+    try {
+      const res = await getIssues();
 
-    const data = res.data.map((i) => ({
-      _id: i._id,
-      Title: i.title,
-      Description: i.description,
-      Priority: i.priority,
-      Status: i.status,
-      AssignedTo: i.assignedTo?.name || "Unassigned",
-      Project: i.project?.name || "No Project",
-      project: i.project,
-      CreatedAt: new Date(i.createdAt).toLocaleString(),
-      assignedTo: i.assignedTo,
-      original: i,
-    }));
+      const data = res.data.map((i) => ({
+        _id: i._id,
+        Title: i.title,
+        Description: i.description,
+        Priority: i.priority,
+        Status: i.status,
+        AssignedTo: i.assignedTo?.name || "Unassigned",
+        Project: i.project?.name || "No Project",
+        project: i.project,
+        CreatedAt: new Date(i.createdAt).toLocaleString(),
+        assignedTo: i.assignedTo,
+        company: i.company,
+        original: i,
+      }));
 
-    setIssues(data);
+      setIssues(data);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error fetching issues",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   useEffect(() => {
     fetchIssues();
-  }, []);
+  }, [selectedCompany]);
   // ✅ BULK UPLOAD PROJECT CHECK
   const handleBulkOpen = () => {
     if (!selectedProject) {
@@ -75,38 +88,55 @@ const IssuesPage = () => {
     setEditIssue(null); // create mode
   };
 
-  const filteredIssues = issues.filter((issue) => {
-    // SUPERADMIN - all issues if no project selected
-    if (!selectedProject && user.role === "superadmin") return true;
+  let filteredIssues = [...issues];
 
-    // STAFF - only assigned issues if no project selected
-    if (!selectedProject && user.role === "staff") {
-      return issue.assignedTo?._id === user._id;
-    }
+  // 1️⃣ Company filter (FIRST)
+  if (selectedCompany) {
+    filteredIssues = filteredIssues.filter(
+      (i) => i.company?._id?.toString() === selectedCompany?._id?.toString(),
+    );
+  }
 
-    // If project selected
+  // 2️⃣ Search filter
+  if (search) {
+    const s = search.toLowerCase();
+    filteredIssues = filteredIssues.filter(
+      (i) =>
+        (i.Title || "").toLowerCase().includes(s) ||
+        (i.Description || "").toLowerCase().includes(s) ||
+        (i.AssignedTo || "").toLowerCase().includes(s),
+    );
+  }
+
+  // 3️⃣ Status filter
+  if (status !== "All") {
+    filteredIssues = filteredIssues.filter(
+      (i) => (i.Status || "").toLowerCase() === status.toLowerCase(),
+    );
+  }
+
+  // 4️⃣ Project + Role filter
+  filteredIssues = filteredIssues.filter((i) => {
+    // project filter
     if (selectedProject) {
-      if (!issue.project && selectedProject) return false;
+      if (!i.project) return false;
 
-      const projectMatch =
-        issue.project._id.toString() === selectedProject._id.toString();
-
-      if (user.role === "superadmin") return projectMatch;
-
-      if (user.role === "staff") {
-        return (
-          projectMatch &&
-          issue.assignedTo?._id?.toString() === user._id.toString()
-        );
-      }
+      if (i.project._id?.toString() !== selectedProject._id?.toString())
+        return false;
     }
 
-    return false;
+    // staff filter
+    if (user.role === "staff") {
+      return i.assignedTo?._id?.toString() === user._id?.toString();
+    }
+
+    return true;
   });
 
-  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, status, selectedProject, selectedCompany]);
 
-  
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
