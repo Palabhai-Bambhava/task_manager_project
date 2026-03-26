@@ -19,46 +19,36 @@ import SubscriptionPage from "./pages/SubscriptionPage";
 
 function App() {
   return (
-    <ChakraProvider theme={theme}>
-      <AuthProvider>
-        {" "}
-        {/* ✅ AuthProvider must be outer */}
-        <ProjectProvider>
-          {" "}
-          {/* ✅ ProjectProvider inside AuthProvider */}
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/register-company" element={<RegisterCompany />} />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/register-company" element={<RegisterCompany />} />
 
-              <Route
-                path="/dashboard/*"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={null} />
-                <Route path="staff" element={<StaffPage />} />
-                <Route path="tasks" element={<TasksPage />} />
-                <Route path="roles" element={<RolePage />} />
+        <Route
+          path="/dashboard/*"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={null} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="tasks" element={<TasksPage />} />
+          <Route path="roles" element={<RolePage />} />
 
-                {/* PROJECT ROUTES */}
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/:id" element={<ProjectsPage />} />
+          {/* PROJECT ROUTES */}
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:id" element={<ProjectsPage />} />
 
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="issues" element={<IssuesPage />} />
-                <Route path="documents" element={<DocumentsPage />} />
-                <Route path="company" element={<CompanyPage/>}/>
-                <Route path="subscription" element={<SubscriptionPage />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </ProjectProvider>
-      </AuthProvider>
-    </ChakraProvider>
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="issues" element={<IssuesPage />} />
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="company" element={<CompanyPage />} />
+          <Route path="subscription" element={<SubscriptionPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

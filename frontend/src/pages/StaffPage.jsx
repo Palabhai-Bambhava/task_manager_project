@@ -32,7 +32,7 @@ const StaffPage = () => {
   // ✅ Fetch staff from backend
   const fetchStaff = async () => {
     try {
-      const res = await getStaff();
+      const res = await getStaff(selectedCompany?._id);
       setStaff(res.data);
     } catch (err) {
       console.error(err);

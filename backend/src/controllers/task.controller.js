@@ -65,18 +65,29 @@ const getTasks = async (req, res) => {
   try {
     let tasks;
 
-    if (req.user.role === "staff") {
-      // Staff: only assigned tasks
+    // 1️⃣ Superadmin
+    if (req.user.role === "superadmin") {
+      tasks = await Task.find(
+        req.query.company ? { company: req.query.company } : {},
+      )
+        .populate("assignedTo", "name email")
+        .populate("project", "name")
+        .populate("company", "_id name");
+    }
+    // 2️⃣ Owner
+    else if (req.user.role === "owner") {
+      tasks = await Task.find({ company: req.user.company })
+        .populate("assignedTo", "name email")
+        .populate("project", "name")
+        .populate("company", "_id name");
+    }
+    // 3️⃣ Staff
+    else if (req.user.role === "staff") {
       tasks = await Task.find({ assignedTo: req.user._id })
         .populate("assignedTo", "name email")
-        .populate("project", "name");
-    } else if (req.user.role === "superadmin" || req.user.role === "owner") {
-      // Superadmin or Owner: all tasks
-      tasks = await Task.find({ company: req.user.company }) // only company tasks
-        .populate("assignedTo", "name email")
-        .populate("project", "name");
+        .populate("project", "name")
+        .populate("company", "_id name");
     } else {
-      // default fallback
       tasks = [];
     }
 

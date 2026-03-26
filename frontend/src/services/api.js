@@ -5,12 +5,16 @@ const API = axios.create({
   withCredentials: true,
 });
 
-export const getTasks = () => API.get("/tasks");
+// TASKS
+export const getTasks = (companyId) =>
+  companyId ? API.get(`/tasks?company=${companyId}`) : API.get("/tasks");
 export const createTask = (data) => API.post("/tasks", data);
 export const updateTask = (id, data) => API.put(`/tasks/${id}`, data);
 export const deleteTask = (id) => API.delete(`/tasks/${id}`);
 
-export const getStaff = () => API.get("/staff");
+// STAFF
+export const getStaff = (companyId) =>
+  companyId ? API.get(`/staff?company=${companyId}`) : API.get("/staff");
 export const createStaff = (staffData) => API.post("/staff", staffData);
 export const deleteStaff = (id) => API.delete(`/staff/${id}`);
 export const updateStaff = (id, data) => API.put(`/staff/${id}`, data);

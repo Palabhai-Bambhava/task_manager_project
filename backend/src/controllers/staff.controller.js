@@ -75,37 +75,43 @@ const createStaff = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 const getStaff = async (req, res) => {
   try {
     let staff;
 
     if (req.user.role === "staff") {
       staff = await User.find({ _id: req.user._id })
-        .select("_id name email role phone isActive company");
+        .select("_id name email role phone isActive company")
+        .populate("company", "_id name"); // ✅ populate company
       return res.json(staff);
     }
 
-    // ✅ OWNER: only own company
+    // OWNER: only own company
     if (req.user.role === "owner") {
       staff = await User.find({
         company: req.user.company,
         role: { $in: ["staff", "admin"] },
-      }).select("_id name email role phone isActive company");
+      })
+        .select("_id name email role phone isActive company")
+        .populate("company", "_id name");
       return res.json(staff);
     }
 
-    // ✅ SUPERADMIN: check query param company
+    // SUPERADMIN: check query param company
     if (req.user.role === "superadmin" && req.query.company) {
       staff = await User.find({
         company: req.query.company,
         role: { $in: ["staff", "admin"] },
-      }).select("_id name email role phone isActive company");
+      })
+        .select("_id name email role phone isActive company")
+        .populate("company", "_id name");
     } else {
       // all staff
       staff = await User.find({
         role: { $in: ["staff", "admin"] },
-      }).select("_id name email role phone isActive company");
+      })
+        .select("_id name email role phone isActive company")
+        .populate("company", "_id name");
     }
 
     res.json(staff);

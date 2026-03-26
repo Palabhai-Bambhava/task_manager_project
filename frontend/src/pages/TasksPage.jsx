@@ -28,7 +28,7 @@ const TasksPage = () => {
   // ---------------- FETCH TASKS ----------------
   const fetchTasks = async () => {
     try {
-      const res = await getTasks();
+      const res = await getTasks(selectedCompany?._id); 
       const tableData = res.data.map((t) => ({
         _id: t._id,
         Title: t.title,
@@ -45,6 +45,7 @@ const TasksPage = () => {
       setTasks(tableData);
     } catch (err) {
       console.error(err);
+      setTasks([]);
     }
   };
 

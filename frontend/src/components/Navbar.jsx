@@ -25,6 +25,8 @@ const Navbar = () => {
 
   const { selectedProject, setSelectedProject } = useProject();
   const { selectedCompany, setSelectedCompany } = useCompany();
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -34,11 +36,14 @@ const Navbar = () => {
   // =========================
   useEffect(() => {
     const fetchCompanies = async () => {
+      setLoadingCompanies(true);
       try {
         const res = await API.get("/companies");
         setCompanies(res.data);
       } catch (err) {
         console.error("Company Fetch Error:", err);
+      } finally {
+        setLoadingCompanies(false);
       }
     };
 
@@ -52,10 +57,10 @@ const Navbar = () => {
   // =========================
   useEffect(() => {
     const fetchProjects = async () => {
+      setLoadingProjects(true);
       try {
         let url = "/projects";
 
-        // ✅ if company selected → filter
         if (user?.role === "superadmin" && selectedCompany) {
           url = `/projects?company=${selectedCompany._id}`;
         }
@@ -63,7 +68,6 @@ const Navbar = () => {
         const res = await API.get(url);
         let filtered = res.data;
 
-        // ✅ STAFF FILTER
         if (user?.role === "staff") {
           filtered = res.data.filter((project) =>
             project.assignedStaff?.some(
@@ -74,12 +78,13 @@ const Navbar = () => {
 
         setProjects(filtered);
 
-        // ✅ AUTO SELECT FOR STAFF
         if (!selectedProject && filtered.length > 0 && user?.role === "staff") {
           setSelectedProject(filtered[0]);
         }
       } catch (error) {
         console.error("Project Fetch Error:", error);
+      } finally {
+        setLoadingProjects(false);
       }
     };
 
@@ -87,7 +92,10 @@ const Navbar = () => {
   }, [user, selectedCompany]);
 
   useEffect(() => {
-    setSelectedProject(null);
+    // Only reset if a company is actually selected
+    if (selectedCompany) {
+      setSelectedProject(null);
+    }
   }, [selectedCompany]);
 
   return (
@@ -119,7 +127,11 @@ const Navbar = () => {
         {user?.role === "superadmin" && (
           <Menu>
             <MenuButton as={Button} colorScheme="whiteAlpha">
-              {selectedCompany ? selectedCompany.name : "All Companies"}
+              {loadingCompanies
+                ? "Loading..."
+                : selectedCompany
+                  ? selectedCompany.name
+                  : "All Companies"}
             </MenuButton>
             <MenuList color="black">
               {/* ✅ ALL COMPANIES OPTION */}
@@ -153,9 +165,16 @@ const Navbar = () => {
         {/* ========================= */}
         <Menu>
           <MenuButton as={Button} colorScheme="whiteAlpha">
-            {selectedProject ? selectedProject.name : "Projects"}
+            {loadingProjects
+              ? "Loading..."
+              : selectedProject
+                ? selectedProject.name
+                : "Projects"}
           </MenuButton>
-          <MenuList color="black">
+          <MenuList
+            bg={colorMode === "light" ? "white" : "gray.700"}
+            color={colorMode === "light" ? "black" : "white"}
+          >
             <MenuItem
               onClick={() => {
                 setSelectedProject(null);
