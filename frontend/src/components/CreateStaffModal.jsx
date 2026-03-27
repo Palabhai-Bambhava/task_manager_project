@@ -17,11 +17,13 @@ import {
 import { useState, useEffect } from "react";
 import { createStaff, updateStaff, getRoles } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useCompany } from "../context/CompanyContext";
 
 const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
   const toast = useToast();
   const [roles, setRoles] = useState([]);
   const { user } = useAuth(); // ✅ correct user source
+  const { selectedCompany } = useCompany();
 
   const fetchRoles = async () => {
     try {
@@ -65,9 +67,11 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
   }, [editData]);
   useEffect(() => {
     if (isOpen) {
-      fetchRoles();
+      getStaff(selectedCompany?._id)
+        .then((res) => setStaffList(res.data))
+        .catch((err) => console.error("Failed to load staff:", err));
     }
-  }, [isOpen]);
+  }, [isOpen, selectedCompany]);
 
   // ✅ Handle Input Change
   const handleChange = (e) => {

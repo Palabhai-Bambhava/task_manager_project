@@ -14,6 +14,9 @@ const modelMap = {
 };
 
 const checkLimit = async (companyId, moduleName) => {
+
+  if (!companyId) return false;
+  
   const company = await Company.findById(companyId);
 
   // ❌ No subscription

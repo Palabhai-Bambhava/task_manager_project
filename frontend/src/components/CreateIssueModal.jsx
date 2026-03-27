@@ -18,10 +18,12 @@ import {
 import { useEffect, useState } from "react";
 import { createIssue, updateIssue, getStaff } from "../services/api";
 import { useProject } from "../context/ProjectContext";
+import { useCompany } from "../context/CompanyContext";
 
 const CreateIssueModal = ({ isOpen, onClose, refreshIssues, editData }) => {
   const toast = useToast();
   const { selectedProject } = useProject();
+  const { selectedCompany } = useCompany();
   const [staffList, setStaffList] = useState([]);
 
   const defaultForm = {
@@ -41,9 +43,11 @@ const CreateIssueModal = ({ isOpen, onClose, refreshIssues, editData }) => {
 
   useEffect(() => {
     if (isOpen) {
-      getStaff().then((res) => setStaffList(res.data));
+      getStaff(selectedCompany?._id)
+        .then((res) => setStaffList(res.data))
+        .catch((err) => console.error(err));
     }
-  }, [isOpen]);
+  }, [isOpen, selectedCompany]);
 
   useEffect(() => {
     if (editData) {
@@ -106,7 +110,7 @@ const CreateIssueModal = ({ isOpen, onClose, refreshIssues, editData }) => {
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{editData ? "Edit Issue" : "Create Issue"}</ModalHeader>
-        <ModalCloseButton onClose={handleClose}/>
+        <ModalCloseButton onClose={handleClose} />
 
         <ModalBody>
           <FormControl mb={3}>

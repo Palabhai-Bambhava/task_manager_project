@@ -5,6 +5,7 @@ const multer = require("multer");
 const DocumentPage = require("../models/DocumentPage.model");
 const PAGE_SIZE_MB = 10;
 const PAGE_SIZE_BYTES = PAGE_SIZE_MB * 1024 * 1024;
+const Project = require("../models/project.model");
 
 /* ---------------- MULTER ---------------- */
 
@@ -49,6 +50,9 @@ const createDocument = async (req, res) => {
       return res.status(400).json({ message: "Project is required" });
     }
 
+    const projectDoc = await Project.findById(project).select("company");
+    const company = projectDoc?.company || req.user.company || null;
+
     // ✅ FIX access parsing
     let access = [];
     if (req.body.access) {
@@ -79,6 +83,7 @@ const createDocument = async (req, res) => {
       name,
       description,
       project,
+      company,
       type,
       fileUrl,
       pages: [],
@@ -248,6 +253,31 @@ const getDocuments = async (req, res) => {
 
     if (project) {
       query.project = project;
+    } else if (req.user.role === "superadmin") {
+      // ✅ superadmin company filter
+      if (req.query.company) {
+        const projects = await Project.find({
+          company: req.query.company,
+        }).select("_id");
+        const projectIds = projects.map((p) => p._id);
+        query.project = { $in: projectIds };
+      }
+      // no filter = all documents
+    } else if (req.user.role === "owner") {
+      // ✅ owner sees only their company's documents
+      const projects = await Project.find({ company: req.user.company }).select(
+        "_id",
+      );
+      const projectIds = projects.map((p) => p._id);
+      query.project = { $in: projectIds };
+    } else if (req.user.role === "staff") {
+      // staff sees only documents they have access to — handled in frontend already
+      // but we still scope to their projects for safety
+      const projects = await Project.find({ company: req.user.company }).select(
+        "_id",
+      );
+      const projectIds = projects.map((p) => p._id);
+      query.project = { $in: projectIds };
     }
 
     const docs = await Document.find(query)

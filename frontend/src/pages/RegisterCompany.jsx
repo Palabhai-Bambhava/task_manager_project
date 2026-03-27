@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerCompany } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+// import { useNavigate } from "react-router-dom";
 
 import {
   Box,
@@ -17,6 +19,8 @@ import {
 
 const RegisterCompany = () => {
   const navigate = useNavigate();
+  // const { login } = useAuth();
+  const { setUser } = useAuth();
 
   const [form, setForm] = useState({
     companyName: "",
@@ -44,6 +48,11 @@ const RegisterCompany = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!form.companyName || !form.ownerName || !form.email || !form.password) {
+      setError("All required fields must be filled");
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -51,15 +60,21 @@ const RegisterCompany = () => {
 
     try {
       setLoading(true);
+      setError("");
 
       const { confirmPassword, ...cleanData } = form;
 
-      await registerCompany(cleanData);
+      // 1️⃣ Register company — backend now returns user object + sets cookie
+      const res = await registerCompany(cleanData);
 
-      navigate("/");
+      // ✅ 2️⃣ Set user in AuthContext directly from registration response
+      // No need to call login() separately — cookie is already set by backend
+      setUser(res.data.user);
+
+      // ✅ 3️⃣ Go to dashboard as logged in owner
+      navigate("/dashboard");
     } catch (err) {
       console.log("ERROR:", err);
-
       setError(
         err.response?.data?.message || err.message || "Registration failed",
       );

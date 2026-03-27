@@ -16,10 +16,14 @@ const createTask = async (req, res) => {
 
     const allowed = await checkLimit(companyId, "task");
 
-    if (!allowed) {
-      return res.status(403).json({
-        message: "Task limit reached",
-      });
+    // ✅ FIX 2: skip limit check for superadmin (they have no company)
+    if (req.user.role !== "superadmin") {
+      const allowed = await checkLimit(companyId, "task");
+      if (!allowed) {
+        return res.status(403).json({
+          message: "Task limit reached. Please upgrade your subscription.",
+        });
+      }
     }
 
     const { title, description, assignedTo, status, project } = req.body;

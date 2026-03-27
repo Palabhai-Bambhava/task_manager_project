@@ -46,26 +46,33 @@ const DocumentsPage = () => {
 
   // Fetch documents
   const fetchDocuments = async () => {
-    try {
-      const res = await getDocuments(selectedProject?._id);
-      const visibleDocs = res.data.filter(
+  try {
+    const res = await getDocuments(selectedProject?._id, selectedCompany?._id);
+
+    let visibleDocs = res.data;
+
+    // ✅ superadmin and owner see everything backend already scoped for them
+    // only staff needs access filtering
+    if (user.role === "staff") {
+      visibleDocs = res.data.filter(
         (doc) =>
-          doc.createdBy._id.toString() === user.id.toString() ||
+          doc.createdBy?._id?.toString() === user._id?.toString() ||
           doc.access?.some((a) => {
             const userId = typeof a.user === "object" ? a.user._id : a.user;
-
-            return userId?.toString() === user.id?.toString();
-          }),
+            return userId?.toString() === user._id?.toString();
+          })
       );
-      setDocuments(visibleDocs);
-    } catch (err) {
-      console.error(err);
     }
-  };
+
+    setDocuments(visibleDocs);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   useEffect(() => {
     fetchDocuments();
-  }, [selectedProject]);
+  }, [selectedProject,selectedCompany]);
 
   // Filter
   const filteredDocs = documents

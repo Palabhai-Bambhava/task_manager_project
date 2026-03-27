@@ -3,12 +3,20 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const stream = require("stream");
 const mongoose = require("mongoose");
+const Project = require("../models/project.model");
 
 // CREATE ISSUE
 const createIssue = async (req, res) => {
   try {
     const { title, description, priority, status, assignedTo, project } =
       req.body;
+
+    if (!project) {
+      return res.status(400).json({ message: "Project is required" });
+    }
+
+    const projectDoc = await Project.findById(project).select("company");
+    const company = projectDoc?.company || req.user.company || null;
 
     const issue = await Issue.create({
       title,
@@ -17,6 +25,7 @@ const createIssue = async (req, res) => {
       status: status || "open",
       assignedTo,
       project,
+      company,
       createdBy: req.user._id,
     });
 
@@ -37,17 +46,36 @@ const createIssue = async (req, res) => {
 // GET ISSUES
 const getIssues = async (req, res) => {
   try {
-    let issues;
+    let query = {};
 
-    if (req.user.role === "staff") {
-      issues = await Issue.find({ assignedTo: req.user._id })
-        .populate("project", "name")
-        .populate("assignedTo", "name email");
-    } else {
-      issues = await Issue.find()
-        .populate("project", "name")
-        .populate("assignedTo", "name email");
+    // ✅ superadmin can filter by company via query param
+    if (req.user.role === "superadmin") {
+      if (req.query.company) {
+        // find all projects that belong to this company, then get issues for those projects
+
+        const projects = await Project.find({
+          company: req.query.company,
+        }).select("_id");
+        const projectIds = projects.map((p) => p._id);
+        query.project = { $in: projectIds };
+      }
+      // no company filter = all issues
+    } else if (req.user.role === "owner") {
+      // owner sees issues only for their company's projects
+
+      const projects = await Project.find({ company: req.user.company }).select(
+        "_id",
+      );
+      const projectIds = projects.map((p) => p._id);
+      query.project = { $in: projectIds };
+    } else if (req.user.role === "staff") {
+      // staff sees only assigned issues
+      query.assignedTo = req.user._id;
     }
+
+    const issues = await Issue.find(query)
+      .populate("project", "name")
+      .populate("assignedTo", "name email");
 
     res.json(issues);
   } catch (error) {
@@ -113,7 +141,6 @@ const deleteIssue = async (req, res) => {
 
 const bulkUploadIssues = async (req, res) => {
   try {
-
     if (!req.file) {
       return res.status(400).json({ message: "CSV file is required" });
     }
@@ -129,7 +156,6 @@ const bulkUploadIssues = async (req, res) => {
     const stream = fs.createReadStream(req.file.path).pipe(csv());
 
     stream.on("data", async (row) => {
-
       const doc = {
         title: row.title,
         description: row.description,
@@ -141,6 +167,7 @@ const bulkUploadIssues = async (req, res) => {
             row.priority.slice(1).toLowerCase()
           : "Medium",
         project: req.body.project,
+        company: req.body.company || null,
         assignedTo:
           row.assignedTo && mongoose.Types.ObjectId.isValid(row.assignedTo)
             ? row.assignedTo.trim()
@@ -151,7 +178,6 @@ const bulkUploadIssues = async (req, res) => {
       batch.push(doc);
 
       if (batch.length >= batchSize) {
-
         stream.pause();
 
         try {
@@ -168,7 +194,6 @@ const bulkUploadIssues = async (req, res) => {
     });
 
     stream.on("end", async () => {
-
       if (batch.length > 0) {
         try {
           const inserted = await Issue.insertMany(batch, { ordered: false });
@@ -186,7 +211,6 @@ const bulkUploadIssues = async (req, res) => {
         totalInserted,
       });
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Bulk upload failed" });

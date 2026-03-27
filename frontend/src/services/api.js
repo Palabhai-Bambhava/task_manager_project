@@ -27,7 +27,8 @@ export const deleteRole = (id) => API.delete(`/roles/${id}`);
 export const getProjects = () => API.get("/projects");
 export const createProject = (data) => API.post("/projects", data);
 
-export const getIssues = () => API.get("/issues");
+export const getIssues = (companyId) =>
+  companyId ? API.get(`/issues?company=${companyId}`) : API.get("/issues");
 export const createIssue = (data) => API.post("/issues", data);
 export const updateIssue = (id, data) => API.put(`/issues/${id}`, data);
 export const deleteIssue = (id) => API.delete(`/issues/${id}`);
@@ -40,10 +41,11 @@ export const bulkUploadIssues = (formData) =>
   });
 
 // documents
-export const getDocuments = (projectId) =>
-  projectId
-    ? API.get(`/documents?project=${projectId}`)
-    : API.get("/documents");
+export const getDocuments = (projectId, companyId) => {
+  if (projectId) return API.get(`/documents?project=${projectId}`);
+  if (companyId) return API.get(`/documents?company=${companyId}`);
+  return API.get("/documents");
+};
 
 export const createDocument = (data) => {
   if (data instanceof FormData) {

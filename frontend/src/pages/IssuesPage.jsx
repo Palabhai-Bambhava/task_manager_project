@@ -27,7 +27,7 @@ const IssuesPage = () => {
 
   const fetchIssues = async () => {
     try {
-      const res = await getIssues();
+      const res = await getIssues(selectedCompany?._id);
 
       const data = res.data.map((i) => ({
         _id: i._id,
@@ -91,11 +91,11 @@ const IssuesPage = () => {
   let filteredIssues = [...issues];
 
   // 1️⃣ Company filter (FIRST)
-  if (selectedCompany) {
-    filteredIssues = filteredIssues.filter(
-      (i) => i.company?._id?.toString() === selectedCompany?._id?.toString(),
-    );
-  }
+  // if (selectedCompany) {
+  //   filteredIssues = filteredIssues.filter(
+  //     (i) => i.company?._id?.toString() === selectedCompany?._id?.toString(),
+  //   );
+  // }
 
   // 2️⃣ Search filter
   if (search) {
@@ -168,7 +168,7 @@ const IssuesPage = () => {
 
         <Flex gap={3}>
           {user?.permissions?.create && (
-            <Button colorScheme="purple" onClick={() => setBulkOpen(true)}>
+            <Button colorScheme="purple" onClick={handleBulkOpen}>
               Bulk Upload
             </Button>
           )}

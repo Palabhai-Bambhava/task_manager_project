@@ -10,14 +10,14 @@ const createStaff = async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ message: "Name and email required" });
     }
-    const companyId = req.user.company;
-
-    const allowed = await checkLimit(companyId, "staff");
-
-    if (!allowed) {
-      return res.status(403).json({
-        message: "Staff limit reached",
-      });
+    if (req.user.role !== "superadmin") {
+      const companyId = req.user.company;
+      const allowed = await checkLimit(companyId, "staff");
+      if (!allowed) {
+        return res.status(403).json({
+          message: "Staff limit reached. Please upgrade your subscription.",
+        });
+      }
     }
     // ⭐ PHONE VALIDATION
     if (phone && !/^[0-9]{10}$/.test(phone)) {

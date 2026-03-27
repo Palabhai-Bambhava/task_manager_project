@@ -75,7 +75,6 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </FormControl>
-
             {/* Password */}
             <FormControl>
               <FormLabel>Password</FormLabel>
@@ -95,14 +94,12 @@ const Login = () => {
                 </InputRightElement>
               </InputGroup>
             </FormControl>
-
             {/* Error */}
             {error && (
               <Text color="red.500" fontSize="sm">
                 {error}
               </Text>
             )}
-
             {/* Login Button */}
             <Button
               colorScheme="blue"
@@ -112,11 +109,11 @@ const Login = () => {
             >
               Login
             </Button>
-
+            
             <Text fontSize="sm" textAlign="center">
               Don't have a company?{" "}
               <Link to="/register-company">
-                <Text color="blue.500" display="inline">
+                <Text as="span" color="blue.500">
                   Register Company
                 </Text>
               </Link>

@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
 import { useCompany } from "../context/CompanyContext";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import API from "../services/api";
 
 const Navbar = () => {
@@ -31,6 +31,7 @@ const Navbar = () => {
   const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
 
+  const isFirstRender = useRef(true);
   // =========================
   // ✅ FETCH COMPANIES (SUPERADMIN ONLY)
   // =========================
@@ -92,10 +93,11 @@ const Navbar = () => {
   }, [user, selectedCompany]);
 
   useEffect(() => {
-    // Only reset if a company is actually selected
-    if (selectedCompany) {
-      setSelectedProject(null);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
+    setSelectedProject(null);
   }, [selectedCompany]);
 
   return (

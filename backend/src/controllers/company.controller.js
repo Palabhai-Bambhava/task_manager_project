@@ -1,10 +1,17 @@
 const Company = require("../models/Company.model");
 const User = require("../models/User.model");
 const bcrypt = require("bcryptjs");
+const Project = require("../models/project.model");
+const Task = require("../models/Task.model");
+const jwt = require("jsonwebtoken");
+const generateToken = require("../utils/generateToken");
+const Role = require("../models/Role.model");
 
 // ✅ REGISTER COMPANY (OWNER FLOW)
 const registerCompany = async (req, res) => {
   try {
+    console.log("STEP 1: BODY", req.body);
+
     const {
       companyName,
       address,
@@ -16,16 +23,19 @@ const registerCompany = async (req, res) => {
       password,
     } = req.body;
 
-    // 1️⃣ Check existing user
+    console.log("STEP 2: Checking user");
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // 2️⃣ Hash password
+    console.log("STEP 3: Hashing password");
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Create company first (owner null for now)
+    console.log("STEP 4: Creating company");
+
     const company = await Company.create({
       name: companyName,
       address,
@@ -35,7 +45,8 @@ const registerCompany = async (req, res) => {
       isActive: true,
     });
 
-    // 4️⃣ Create owner user
+    console.log("STEP 5: Creating owner");
+
     const owner = await User.create({
       name: ownerName,
       email,
@@ -51,23 +62,47 @@ const registerCompany = async (req, res) => {
       },
     });
 
-    // 5️⃣ Assign owner to company & save
+    console.log("STEP 6: Assign owner");
+
     company.owner = owner._id;
     await company.save();
 
-    // 6️⃣ Populate owner for response
-    const populatedCompany = await Company.findById(company._id).populate(
-      "owner",
-      "name email"
-    );
+    console.log("STEP 7: Generate token");
+
+    const token = generateToken(owner);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    console.log("STEP 8: Fetch role");
+
+    let permissions = [];
+    try {
+      const roleData = await Role.findOne({ name: owner.role });
+      permissions = roleData?.permissions || [];
+    } catch (err) {
+      console.log("Role error:", err);
+    }
+
+    console.log("STEP 9: Sending response");
 
     res.status(201).json({
       message: "Company registered successfully",
-      company: populatedCompany,
-      owner,
+      user: {
+        id: owner._id,
+        name: owner.name,
+        email: owner.email,
+        role: owner.role,
+        company: company._id,
+        permissions,
+      },
     });
   } catch (error) {
-    console.log(error);
+    console.error("FINAL ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -117,7 +152,7 @@ const updateCompany = async (req, res) => {
     company.phone = phone;
     company.website = website;
     company.description = description;
-    company.isActive = isActive; 
+    company.isActive = isActive;
 
     await company.save();
 
@@ -148,6 +183,13 @@ const deleteCompany = async (req, res) => {
       return res.status(404).json({ message: "Company not found" });
     }
 
+    await Task.deleteMany({ company: company._id });
+    await Project.deleteMany({ company: company._id });
+    await User.deleteMany({
+      company: company._id,
+      role: { $in: ["staff", "admin", "owner"] },
+    });
+
     await company.deleteOne();
 
     res.json({ message: "Company deleted successfully" });
@@ -164,8 +206,7 @@ const checkSubscriptionStatus = async (req, res) => {
       return res.json({ active: false });
     }
 
-    const isExpired =
-      new Date() > new Date(company.subscription.endDate);
+    const isExpired = new Date() > new Date(company.subscription.endDate);
 
     res.json({
       active: !isExpired,
@@ -175,8 +216,6 @@ const checkSubscriptionStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 module.exports = {
   registerCompany,
