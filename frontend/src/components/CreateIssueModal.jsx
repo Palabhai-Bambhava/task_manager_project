@@ -113,7 +113,7 @@ const CreateIssueModal = ({ isOpen, onClose, refreshIssues, editData }) => {
         <ModalCloseButton onClose={handleClose} />
 
         <ModalBody>
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Title</FormLabel>
             <Input name="title" value={form.title} onChange={handleChange} />
           </FormControl>

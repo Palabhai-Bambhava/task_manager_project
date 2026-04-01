@@ -402,7 +402,7 @@ const CreateDocumentModal = ({
         <ModalCloseButton />
 
         <ModalBody>
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Name</FormLabel>
             <input
               name="name"
@@ -422,7 +422,7 @@ const CreateDocumentModal = ({
             />
           </FormControl>
 
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Document Type</FormLabel>
 
             <Flex gap={2}>

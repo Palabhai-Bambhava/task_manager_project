@@ -15,7 +15,7 @@ import {
 } from "@chakra-ui/react";
 
 import { useState, useEffect } from "react";
-import { createStaff, updateStaff, getRoles } from "../services/api";
+import { createStaff, updateStaff, getRoles, getStaff } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useCompany } from "../context/CompanyContext";
 
@@ -24,6 +24,7 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
   const [roles, setRoles] = useState([]);
   const { user } = useAuth(); // ✅ correct user source
   const { selectedCompany } = useCompany();
+  const [staffList, setStaffList] = useState([]);
 
   const fetchRoles = async () => {
     try {
@@ -67,7 +68,7 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
   }, [editData]);
   useEffect(() => {
     if (isOpen) {
-      getStaff(selectedCompany?._id)
+        getStaff(selectedCompany?._id)
         .then((res) => setStaffList(res.data))
         .catch((err) => console.error("Failed to load staff:", err));
     }
@@ -177,13 +178,13 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
 
         <ModalBody>
           {/* Name */}
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Name</FormLabel>
             <Input name="name" value={form.name} onChange={handleChange} />
           </FormControl>
 
           {/* Email */}
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Email</FormLabel>
             <Input
               type="email"
@@ -194,7 +195,7 @@ const CreateStaffModal = ({ isOpen, onClose, refreshStaff, editData }) => {
           </FormControl>
 
           {/* Phone */}
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Phone</FormLabel>
             <Input
               type="text"

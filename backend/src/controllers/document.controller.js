@@ -6,6 +6,7 @@ const DocumentPage = require("../models/DocumentPage.model");
 const PAGE_SIZE_MB = 10;
 const PAGE_SIZE_BYTES = PAGE_SIZE_MB * 1024 * 1024;
 const Project = require("../models/project.model");
+const checkLimit = require("../utils/checkLimit");
 
 /* ---------------- MULTER ---------------- */
 
@@ -52,6 +53,23 @@ const createDocument = async (req, res) => {
 
     const projectDoc = await Project.findById(project).select("company");
     const company = projectDoc?.company || req.user.company || null;
+
+    // 🔥 LIMIT CHECK
+    if (req.user.role !== "superadmin") {
+      if (!company) {
+        return res.status(400).json({
+          message: "Company not found for this document",
+        });
+      }
+
+      const allowed = await checkLimit(company, "document");
+
+      if (!allowed) {
+        return res.status(403).json({
+          message: "Document limit reached. Upgrade your plan.",
+        });
+      }
+    }
 
     // ✅ FIX access parsing
     let access = [];

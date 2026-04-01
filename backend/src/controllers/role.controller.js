@@ -15,8 +15,6 @@ const sanitizePermissions = (permissions) => {
   return sanitized;
 };
 
-
-
 // ✅ CREATE ROLE
 exports.createRole = async (req, res) => {
   try {
@@ -27,14 +25,14 @@ exports.createRole = async (req, res) => {
     }
 
     const role = await Role.create({
-      name,
-      permissions:
-        sanitizePermissions(permissions) || {
-          create: false,
-          read: true,
-          update: false,
-          delete: false,
-        },
+      name: name.toLowerCase(),
+      company: req.user.company,
+      permissions: sanitizePermissions(permissions) || {
+        create: false,
+        read: true,
+        update: false,
+        delete: false,
+      },
     });
 
     res.status(201).json(role);
@@ -45,8 +43,6 @@ exports.createRole = async (req, res) => {
     });
   }
 };
-
-
 
 // ✅ GET ALL ROLES (🔥 FIX: add isActive)
 exports.getRoles = async (req, res) => {
@@ -60,7 +56,7 @@ exports.getRoles = async (req, res) => {
       // owner/admin → only their company roles
       roles = await Role.find(
         { company: req.user.company, isActive: true },
-        "name permissions isActive"
+        "name permissions isActive",
       );
     }
 
@@ -72,8 +68,6 @@ exports.getRoles = async (req, res) => {
     });
   }
 };
-
-
 
 // ✅ UPDATE ROLE (🔥 FIX: add isActive support)
 exports.updateRole = async (req, res) => {
@@ -93,11 +87,9 @@ exports.updateRole = async (req, res) => {
       updateData.isActive = isActive;
     }
 
-    const role = await Role.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
+    const role = await Role.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+    });
 
     if (!role) {
       return res.status(404).json({ message: "Role not found" });
@@ -111,8 +103,6 @@ exports.updateRole = async (req, res) => {
     });
   }
 };
-
-
 
 // ✅ DELETE ROLE
 exports.deleteRole = async (req, res) => {

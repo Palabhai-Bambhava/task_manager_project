@@ -4,6 +4,8 @@ const csv = require("csv-parser");
 const stream = require("stream");
 const mongoose = require("mongoose");
 const Project = require("../models/project.model");
+const checkLimit = require("../utils/checkLimit");
+const Company = require("../models/Company.model");
 
 // CREATE ISSUE
 const createIssue = async (req, res) => {
@@ -16,7 +18,33 @@ const createIssue = async (req, res) => {
     }
 
     const projectDoc = await Project.findById(project).select("company");
-    const company = projectDoc?.company || req.user.company || null;
+    const company = projectDoc?.company || req.user.company;
+
+    if (!company) {
+      return res.status(400).json({
+        message: "Company not found",
+      });
+    }
+
+    const companyId = company._id || company;
+    // 🔥 LIMIT CHECK
+    if (req.user.role !== "superadmin") {
+      if (!company) {
+        return res.status(400).json({
+          message: "Company not found for this issue",
+        });
+      }
+
+      const companyId = company?._id || company;
+
+      const allowed = await checkLimit(companyId, "issue");
+
+      if (!allowed) {
+        return res.status(403).json({
+          message: "Issue limit reached. Upgrade your plan.",
+        });
+      }
+    }
 
     const issue = await Issue.create({
       title,
@@ -149,6 +177,38 @@ const bulkUploadIssues = async (req, res) => {
       return res.status(400).json({ message: "Project is required" });
     }
 
+    const projectDoc = await Project.findById(req.body.project).select(
+      "company",
+    );
+    const company = projectDoc?.company || req.user.company;
+
+    if (!company) {
+      return res.status(400).json({
+        message: "Company not found for bulk upload",
+      });
+    }
+
+    const companyId = company?._id || company;
+
+    // ✅ GET COMPANY + LIMIT
+    const companyDoc = await Company.findById(companyId);
+
+    const issueModule = companyDoc.subscription?.modules.find(
+      (m) => m.moduleName === "issue",
+    );
+
+    const limit = issueModule?.limit || 0;
+
+    const currentCount = await Issue.countDocuments({ company: companyId });
+
+    let remaining = limit - currentCount;
+
+    if (remaining <= 0) {
+      return res.status(403).json({
+        message: "Issue limit reached. Cannot upload more.",
+      });
+    }
+
     const batchSize = 1000;
     let batch = [];
     let totalInserted = 0;
@@ -156,6 +216,12 @@ const bulkUploadIssues = async (req, res) => {
     const stream = fs.createReadStream(req.file.path).pipe(csv());
 
     stream.on("data", async (row) => {
+      // 🔥 STOP IF LIMIT REACHED
+      if (remaining <= 0) {
+        stream.destroy();
+        return;
+      }
+
       const doc = {
         title: row.title,
         description: row.description,
@@ -167,7 +233,7 @@ const bulkUploadIssues = async (req, res) => {
             row.priority.slice(1).toLowerCase()
           : "Medium",
         project: req.body.project,
-        company: req.body.company || null,
+        company: companyId, // ✅ FIXED
         assignedTo:
           row.assignedTo && mongoose.Types.ObjectId.isValid(row.assignedTo)
             ? row.assignedTo.trim()
@@ -176,7 +242,9 @@ const bulkUploadIssues = async (req, res) => {
       };
 
       batch.push(doc);
+      remaining--; // 🔥 IMPORTANT
 
+      // INSERT BATCH
       if (batch.length >= batchSize) {
         stream.pause();
 
@@ -188,13 +256,12 @@ const bulkUploadIssues = async (req, res) => {
         }
 
         batch = [];
-
         stream.resume();
       }
     });
 
     stream.on("end", async () => {
-      if (batch.length > 0) {
+      if (batch.length > 0 && remaining >= 0) {
         try {
           const inserted = await Issue.insertMany(batch, { ordered: false });
           totalInserted += inserted.length;
@@ -203,12 +270,12 @@ const bulkUploadIssues = async (req, res) => {
         }
       }
 
-      // delete uploaded CSV after processing
       fs.unlinkSync(req.file.path);
 
       res.json({
         message: "Bulk upload completed",
         totalInserted,
+        remainingLimit: remaining,
       });
     });
   } catch (error) {

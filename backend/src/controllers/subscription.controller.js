@@ -77,14 +77,49 @@ exports.updatePlan = async (req, res) => {
     const plan = await SubscriptionPlan.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true },
+      { new: true }
     );
 
     if (!plan) {
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    res.json(plan);
+    // 🔥 SYNC COMPANIES (OPTIMIZED)
+    const companies = await Company.find({
+      "subscription.planId": plan._id,
+    });
+
+    for (const company of companies) {
+      if (!company.subscription) continue;
+
+      // ✅ update modules
+      company.subscription.modules = plan.modules.map((m) => ({
+        moduleName: m.moduleName,
+        limit: Number(m.limit),
+      }));
+
+      // ✅ OPTIONAL: reset validity (recommended)
+      const startDate = new Date();
+      let days = 30;
+
+      if (plan.billingCycle === "Quarterly") days = 90;
+      if (plan.billingCycle === "Half-Yearly") days = 180;
+      if (plan.billingCycle === "Yearly") days = 365;
+
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + days);
+
+      company.subscription.startDate = startDate;
+      company.subscription.endDate = endDate;
+
+      await company.save();
+    }
+
+    res.json({
+      message: "Plan updated & synced successfully",
+      plan,
+    });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

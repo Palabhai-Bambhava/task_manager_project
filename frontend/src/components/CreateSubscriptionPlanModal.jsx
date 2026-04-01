@@ -167,7 +167,7 @@ const CreateSubscriptionPlanModal = ({
           </FormControl>
 
           {/* Price */}
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Price</FormLabel>
             <Input
               type="number"
@@ -177,7 +177,7 @@ const CreateSubscriptionPlanModal = ({
           </FormControl>
 
           {/* Modules */}
-          <FormControl mb={3}>
+          <FormControl mb={3} isRequired>
             <FormLabel>Modules</FormLabel>
 
             <VStack spacing={3} align="stretch">
