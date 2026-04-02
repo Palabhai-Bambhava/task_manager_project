@@ -78,8 +78,9 @@ const DocumentsPage = () => {
   const filteredDocs = documents
     .filter((doc) => doc.name.toLowerCase().includes(search.toLowerCase()))
     .filter((doc) => (status === "All" ? true : doc.status === status))
-    .map((doc) => ({
+    .map((doc,index) => ({
       _id: doc._id,
+      "#": index + 1,
       Name: doc.name,
       Description: doc.description,
       CreatedBy: doc.createdBy?.name || "Unknown",
@@ -114,7 +115,7 @@ const DocumentsPage = () => {
     setViewDoc(row.original);
   };
 
-  const columns = ["Name", "Description", "CreatedBy", "Access"];
+  const columns = ["#","Name", "Description", "CreatedBy", "Access"];
 
   const cleanContent = (html) => {
     if (!html) return "";

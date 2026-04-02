@@ -167,7 +167,7 @@ const StaffPage = () => {
       <TableComponent
         title=""
         columns={["#", "Name", "Email", "Phone", "Role", "Status"]}
-        data={currentStaff} // ✅ pagination applied here
+        data={currentStaff} 
         onEdit={user?.permissions?.update ? handleEdit : null}
         onDelete={user?.permissions?.delete ? handleDelete : null}
       />

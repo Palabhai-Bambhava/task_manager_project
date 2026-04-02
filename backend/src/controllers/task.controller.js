@@ -14,7 +14,7 @@ const createTask = async (req, res) => {
 
     const companyId = req.user.company;
 
-    const allowed = await checkLimit(companyId, "task");
+    // const allowed = await checkLimit(companyId, "task");
 
     // ✅ FIX 2: skip limit check for superadmin (they have no company)
     if (req.user.role !== "superadmin") {
@@ -139,28 +139,59 @@ const updateTask = async (req, res) => {
   const { id } = req.params;
   const { title, description, assignedTo, status, project } = req.body;
 
+  // ✅ Validate Task ID
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ message: "Invalid Task ID" });
   }
 
   try {
-    const task = await Task.findById(id);
-    if (!task) return res.status(404).json({ message: "Task not found" });
+    // ✅ Allow only superadmin + owner
+    if (!["superadmin", "owner"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
 
-    if (title) task.title = title;
-    if (description) task.description = description;
-    if (assignedTo) task.assignedTo = assignedTo;
-    if (status) task.status = status;
-    if (project) task.project = project;
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // ✅ Validate assignedTo
+    if (assignedTo && assignedTo !== "") {
+      if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+        return res.status(400).json({ message: "Invalid assignedTo ID" });
+      }
+      task.assignedTo = assignedTo;
+    }
+
+    // ✅ Validate project
+    if (project && project !== "") {
+      if (!mongoose.Types.ObjectId.isValid(project)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      task.project = project;
+    }
+
+    // ✅ Update fields safely
+    if (title) task.title = title.trim();
+    if (description) task.description = description.trim();
+
+    // ✅ Validate status (optional but recommended)
+    const validStatus = ["pending", "in-progress", "completed"];
+    if (status && validStatus.includes(status)) {
+      task.status = status;
+    }
 
     await task.save();
 
-    const populatedTask = await task
-      .populate("assignedTo", "name email")
-      .populate("project", "name");
+    // ✅ Populate properly
+    await task.populate([
+      { path: "assignedTo", select: "name email" },
+      { path: "project", select: "name" },
+    ]);
 
-    res.json({ message: "Task updated", task: populatedTask });
+    res.json({ message: "Task updated successfully", task });
   } catch (error) {
+    console.error("🔥 UPDATE TASK ERROR:", error); // VERY IMPORTANT
     res.status(500).json({ message: error.message });
   }
 };

@@ -60,8 +60,9 @@ const ProjectsPage = () => {
   }
 
   // 5️⃣ Map for table
-  filteredProjects = filteredProjects.map((p) => ({
+  filteredProjects = filteredProjects.map((p,index) => ({
     _id: p._id,
+    "#": index + 1,
     Name: p.name,
     Status: p.status,
     AssignedStaff: Array.isArray(p.assignedStaff)
@@ -107,7 +108,7 @@ const ProjectsPage = () => {
     }
   };
 
-  const columns = ["Name", "Status", "AssignedStaff"];
+  const columns = ["#","Name", "Status", "AssignedStaff"];
 
   return (
     <>

@@ -25,7 +25,7 @@ import TableComponent from "../components/TableComponent";
 import { useAuth } from "../context/AuthContext";
 
 const RolePage = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const toast = useToast();
 
   const [roles, setRoles] = useState([]);
@@ -35,7 +35,7 @@ const RolePage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
 
-  if (user?.role === "staff") return null;
+  if (user?.role !== "superadmin") return null;
 
   // FETCH ROLES
   const fetchRoles = async () => {
@@ -48,12 +48,16 @@ const RolePage = () => {
   };
 
   useEffect(() => {
+    if (loading) return; // ⛔ wait
+
+    if (user?.role !== "superadmin") return;
+
     fetchRoles();
-  }, []);
+  }, [user, loading]);
 
   // FILTER
   const filteredRoles = roles.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase())
+    r.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   // TABLE DATA
@@ -168,12 +172,17 @@ const RolePage = () => {
             columns={["Role", "Status", "Action"]}
             data={tableData}
             renderCell={(row, column) => {
+              if (column === "Role") {
+                return (
+                  <Text fontWeight="semibold" color="gray.800">
+                    {row[column] || "-"}
+                  </Text>
+                );
+              }
               if (column === "Status") {
                 return (
                   <Text
-                    color={
-                      row.Status === "Active" ? "green.500" : "red.500"
-                    }
+                    color={row.Status === "Active" ? "green.500" : "red.500"}
                   >
                     {row.Status}
                   </Text>
@@ -187,17 +196,21 @@ const RolePage = () => {
                       <Button
                         size="sm"
                         colorScheme="blue"
-                        onClick={() => openEditModal(row._id)}
+                        variant="outline"
+                        _hover={{ bg: "blue.50" }}
+                        onClick={() => onEdit(row)}
                       >
-                        Edit
+                        ✏️
                       </Button>
 
                       <Button
                         size="sm"
                         colorScheme="red"
-                        onClick={() => handleDeleteRole(row._id)}
+                        variant="outline"
+                        _hover={{ bg: "red.50" }}
+                        onClick={() => onDelete(row._id)}
                       >
-                        Delete
+                        🗑️
                       </Button>
                     </HStack>
                   )
@@ -270,4 +283,4 @@ const RolePage = () => {
   );
 };
 
-export default RolePage; 
+export default RolePage;

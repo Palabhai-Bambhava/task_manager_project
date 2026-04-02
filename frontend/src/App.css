@@ -1,3 +1,9 @@
-body {
-  overflow-y: scroll;
+.ql-container {
+  height: 100% !important;
+}
+
+.ql-editor {
+  min-height: 100% !important;
+  height: 100% !important;
+  overflow-y: auto;
 }

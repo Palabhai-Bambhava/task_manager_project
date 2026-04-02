@@ -1,5 +1,6 @@
 const Project = require("../models/project.model");
 const checkLimit = require("../utils/checkLimit");
+const mongoose = require("mongoose");
 
 // GET PROJECTS
 const getProjects = async (req, res) => {
@@ -69,28 +70,57 @@ const createProject = async (req, res) => {
 // UPDATE PROJECT
 const updateProject = async (req, res) => {
   try {
-    if (req.user.role !== "superadmin") {
+    // ✅ Allow superadmin + owner
+    if (!["superadmin", "owner"].includes(req.user.role)) {
       return res.status(403).json({
-        message: "Only superadmin can edit project",
+        message: "Not allowed to update project",
       });
     }
 
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    // ✅ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid Project ID" });
+    }
+
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // ✅ Owner can only update their company project
+    if (
+      req.user.role === "owner" &&
+      project.company.toString() !== req.user.company.toString()
+    ) {
+      return res.status(403).json({
+        message: "You can only update your own company projects",
+      });
+    }
+
+    // ✅ Update safely
+    const { name, status, assignedStaff } = req.body;
+
+    if (name) project.name = name;
+    if (status) project.status = status;
+    if (assignedStaff) project.assignedStaff = assignedStaff;
+
+    await project.save();
+
+    await project.populate("assignedStaff", "name email");
 
     res.status(200).json(project);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("🔥 UPDATE PROJECT ERROR:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
 // DELETE PROJECT
 const deleteProject = async (req, res) => {
   try {
-    if (req.user.role !== "superadmin") {
+    if (!["superadmin", "owner"].includes(req.user.role)) {
       return res.status(403).json({
-        message: "Only superadmin can delete project",
+        message: "Not allowed to delete project",
       });
     }
 

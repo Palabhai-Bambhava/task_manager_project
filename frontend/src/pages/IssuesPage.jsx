@@ -29,8 +29,9 @@ const IssuesPage = () => {
     try {
       const res = await getIssues(selectedCompany?._id);
 
-      const data = res.data.map((i) => ({
+      const data = res.data.map((i,index) => ({
         _id: i._id,
+        "#": index + 1,
         Title: i.title,
         Description: i.description,
         Priority: i.priority,
@@ -153,6 +154,7 @@ const IssuesPage = () => {
   };
 
   const columns = [
+    "#",
     "Title",
     "Description",
     "Priority",

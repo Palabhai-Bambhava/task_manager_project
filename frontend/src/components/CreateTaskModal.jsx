@@ -73,7 +73,7 @@ const CreateTaskModal = ({ isOpen, onClose, refreshTasks, editData }) => {
       description: form.description.trim(),
       assignedTo: form.assignedTo,
       status: form.status,
-      project: selectedProject._id, // Assign to selected project
+      project:selectedProject?._id || editData?.project?._id,
     };
 
     try {

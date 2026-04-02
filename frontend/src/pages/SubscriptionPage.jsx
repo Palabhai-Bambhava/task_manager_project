@@ -11,6 +11,9 @@ import {
   Button,
   useDisclosure,
   useToast,
+  Badge,
+  Text,
+  HStack,
 } from "@chakra-ui/react";
 
 import TableComponent from "../components/TableComponent";
@@ -188,21 +191,48 @@ const SubscriptionPage = ({ companyId }) => {
         // ✅ OWNER VIEW ALWAYS HAS VIEW
         onView={handleView}
         renderCell={(row, col) => {
-          if (col === "Cycle" && !isSuperAdmin) {
+          if (col === "Name") {
             return (
-              <>
-                {row[col]}
+              <Text fontWeight="semibold" color="gray.800">
+                {row[col] || "-"}
+              </Text>
+            );
+          }
+          // 💰 PRICE STYLE
+          if (col === "Price") {
+            return (
+              <Text fontWeight="bold" color="green.500">
+                ₹{row.Price}
+              </Text>
+            );
+          }
 
-                <Button
-                  size="xs"
-                  ml={2}
-                  colorScheme={row.isActive ? "green" : "purple"}
-                  isDisabled={row.isActive}
-                  onClick={() => handleApply(row.original)}
+          // 🔁 CYCLE + BUTTON (FIXED)
+          if (col === "Cycle") {
+            return (
+              <HStack spacing={2}>
+                <Badge
+                  colorScheme={
+                    row.Cycle?.toLowerCase() === "monthly" ? "blue" : "orange"
+                  }
+                  px={2}
+                  py={1}
+                  borderRadius="md"
                 >
-                  {row.isActive ? "Activated" : "Choose Plan"}
-                </Button>
-              </>
+                  {row.Cycle}
+                </Badge>
+
+                {!isSuperAdmin && (
+                  <Button
+                    size="xs"
+                    colorScheme={row.isActive ? "green" : "purple"}
+                    isDisabled={row.isActive}
+                    onClick={() => handleApply(row.original)}
+                  >
+                    {row.isActive ? "Activated" : "Choose Plan"}
+                  </Button>
+                )}
+              </HStack>
             );
           }
 

@@ -7,6 +7,8 @@ import { CompanyProvider } from "./context/CompanyContext";
 import { ProjectProvider } from "./context/ProjectContext";
 import { AuthProvider } from "./context/AuthContext";
 import theme from "./theme";
+import "./App.css";
+
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <ChakraProvider theme={theme}>

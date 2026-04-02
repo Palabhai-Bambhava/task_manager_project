@@ -1,4 +1,14 @@
-import { Box, Text, SimpleGrid, Flex } from "@chakra-ui/react";
+import { Box, Text, SimpleGrid, Flex, HStack, Icon } from "@chakra-ui/react";
+import {
+  MdPeople,
+  MdCheckCircle,
+  MdBusiness,
+  MdFolder,
+  MdWarning,
+  MdDescription,
+  MdAttachMoney,
+} from "react-icons/md";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { useEffect, useState } from "react";
@@ -25,13 +35,27 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (location.pathname === "/dashboard") {
-      getStaff().then((res) => setStaff(res.data)).catch(console.error);
-      getTasks().then((res) => setTasks(res.data)).catch(console.error);
-      getCompanies().then((res) => setCompanies(res.data)).catch(console.error);
-      getProjects().then((res) => setProjects(res.data)).catch(console.error);
-      getIssues().then((res) => setIssues(res.data)).catch(console.error);
-      getDocuments().then((res) => setDocuments(res.data)).catch(console.error);
-      getPlans().then((res) => setPlans(res.data)).catch(console.error);
+      getStaff()
+        .then((res) => setStaff(res.data))
+        .catch(console.error);
+      getTasks()
+        .then((res) => setTasks(res.data))
+        .catch(console.error);
+      getCompanies()
+        .then((res) => setCompanies(res.data))
+        .catch(console.error);
+      getProjects()
+        .then((res) => setProjects(res.data))
+        .catch(console.error);
+      getIssues()
+        .then((res) => setIssues(res.data))
+        .catch(console.error);
+      getDocuments()
+        .then((res) => setDocuments(res.data))
+        .catch(console.error);
+      getPlans()
+        .then((res) => setPlans(res.data))
+        .catch(console.error);
     }
   }, [location.pathname]);
 
@@ -46,69 +70,64 @@ const Dashboard = () => {
 
   const isDashboardPage = location.pathname === "/dashboard";
 
+  const stats = [
+    { label: "Total Staff", value: totalStaff, icon: MdPeople },
+    { label: "Active Users", value: activeUsers, icon: MdCheckCircle },
+    { label: "Total Companies", value: totalCompanies, icon: MdBusiness },
+    { label: "Total Projects", value: totalProjects, icon: MdFolder },
+    { label: "Total Issues", value: totalIssues, icon: MdWarning },
+    { label: "Total Documents", value: totalDocuments, icon: MdDescription },
+    { label: "Total Plans", value: totalPlans, icon: MdAttachMoney },
+  ];
+
   return (
-    <Flex h="100vh" overflow="hidden">
+    <Flex h="100vh" overflow="hidden" bg="gray.50">
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Right Side */}
+      {/* Main Content */}
       <Box
         flex="1"
         ml={{ base: 0, md: "220px" }}
         display="flex"
         flexDirection="column"
       >
-        {/* Navbar */}
         <Navbar />
 
         {/* Scrollable Content */}
-        <Box flex="1" overflowY="auto" p={5} mt="70px">
+        <Box flex="1" overflowY="auto" p={6} mt="70px">
           {isDashboardPage && (
             <>
-              <Text fontSize="2xl" mb={5}>
+              <Text fontSize="2xl" fontWeight="bold" mb={6}>
                 Dashboard
               </Text>
 
-              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5} mb={5}>
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Staff</Text>
-                  <Text fontSize="2xl">{totalStaff}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Active Users</Text>
-                  <Text fontSize="2xl">{activeUsers}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Tasks</Text>
-                  <Text fontSize="2xl">{totalTasks}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Companies</Text>
-                  <Text fontSize="2xl">{totalCompanies}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Projects</Text>
-                  <Text fontSize="2xl">{totalProjects}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Issues</Text>
-                  <Text fontSize="2xl">{totalIssues}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Documents</Text>
-                  <Text fontSize="2xl">{totalDocuments}</Text>
-                </Box>
-
-                <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text>Total Plans</Text>
-                  <Text fontSize="2xl">{totalPlans}</Text>
-                </Box>
+              <SimpleGrid columns={{ base: 1, md: 3, lg: 4 }} spacing={6}>
+                {stats.map((stat, index) => (
+                  <Flex
+                    key={stat.label}
+                    bg="white"
+                    _dark={{ bg: "gray.700" }}
+                    p={5}
+                    borderRadius="lg"
+                    shadow="md"
+                    transition="all 0.2s"
+                    _hover={{ transform: "translateY(-5px)", shadow: "xl" }}
+                  >
+                    <HStack spacing={3}>
+                      <Icon as={stat.icon} boxSize={8} color={stat.color} />
+                      
+                      <Box>
+                        <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.300" }}>
+                          {stat.label}
+                        </Text>
+                        <Text fontSize="2xl" fontWeight="bold" >
+                          {stat.value}
+                        </Text>
+                      </Box>
+                    </HStack>
+                  </Flex>
+                ))}
               </SimpleGrid>
             </>
           )}

@@ -44,21 +44,34 @@ const CreateDocumentModal = ({
           addPage: {
             key: 13,
             shiftKey: true,
-            handler: (range, context) => {
+            handler: function (range) {
+              const quill = this.quill;
+              const cursorIndex = range.index;
+
+              const currentContent = pages[activePageIndex] || "";
+
+              // 🔥 split content from cursor
+              const firstPart = currentContent.slice(0, cursorIndex);
+              const secondPart = currentContent.slice(cursorIndex);
+
               setPages((prev) => {
-                const newPages = [...prev];
-                newPages.splice(activePageIndex + 1, 0, "");
-                return newPages;
+                const updated = [...prev];
+                updated[activePageIndex] = firstPart;
+                updated.splice(activePageIndex + 1, 0, secondPart);
+                return updated;
               });
 
-              setActivePageIndex((prev) => prev + 1);
+              setTimeout(() => {
+                setActivePageIndex(activePageIndex + 1);
+              }, 0);
+
               return false;
             },
           },
         },
       },
     }),
-    [activePageIndex],
+    [pages, activePageIndex],
   );
 
   const [form, setForm] = useState({
@@ -317,30 +330,32 @@ const CreateDocumentModal = ({
 
   const handleAutoPageBreak = (index) => {
     const editor = pageRefs.current[index];
-
     if (!editor) return;
 
     const editorEl = editor.editor?.root;
-
     if (!editorEl) return;
 
-    const height = editorEl.scrollHeight;
+    const maxHeight = 1000; // A4 limit
+    const currentHeight = editorEl.scrollHeight;
 
-    // 🔥 A4 height limit
-    if (height > 1000) {
+    if (currentHeight > maxHeight) {
       const content = pages[index];
 
-      // 🔥 split content (simple split)
-      const splitPoint = Math.floor(content.length / 2);
+      // 🔥 split from last safe position
+      let splitIndex = content.length - 100;
 
-      const firstHalf = content.substring(0, splitPoint);
-      const secondHalf = content.substring(splitPoint);
+      if (splitIndex < 0) splitIndex = Math.floor(content.length / 2);
 
-      const newPages = [...pages];
-      newPages[index] = firstHalf;
-      newPages.splice(index + 1, 0, secondHalf);
+      const firstPart = content.slice(0, splitIndex);
+      const secondPart = content.slice(splitIndex);
 
-      setPages(newPages);
+      setPages((prev) => {
+        const updated = [...prev];
+        updated[index] = firstPart;
+        updated.splice(index + 1, 0, secondPart);
+        return updated;
+      });
+
       setActivePageIndex(index + 1);
     }
   };
@@ -482,31 +497,44 @@ const CreateDocumentModal = ({
                   key={index}
                   style={{
                     width: "794px",
-                    minHeight: "1123px",
+                    height: "1123px", // ✅ fixed A4
                     margin: "30px auto",
                     background: "#fff",
-                    padding: "40px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)", // 👈 important
-                    borderRadius: "8px", // 👈 smooth look
+                    padding: "20px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    borderRadius: "8px",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
                   }}
                 >
-                  <FormControl mb={2}>
+                  <FormControl
+                    mb={2}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
                     <FormLabel>Page {index + 1}</FormLabel>
 
                     <ReactQuill
+                      ref={(el) => (pageRefs.current[index] = el)}
                       theme="snow"
-                      modules={modules}
+                      modules={{ toolbar: true }}
                       value={page}
                       onFocus={() => setActivePageIndex(index)}
                       onChange={(value) => {
-                        const updated = [...pages];
-                        updated[index] = value;
-                        setPages(updated);
+                        setPages((prev) => {
+                          const updated = [...prev];
+                          updated[index] = value;
+                          return updated;
+                        });
                       }}
+                      style={{ height: "850px" }} // ✅ FIXED HEIGHT
                     />
                   </FormControl>
 
-                  {/* DELETE BUTTON */}
                   {pages.length > 1 && (
                     <Button
                       size="xs"
@@ -514,7 +542,7 @@ const CreateDocumentModal = ({
                       onClick={() => {
                         const updated = pages.filter((_, i) => i !== index);
                         setPages(updated);
-                        setActivePageIndex(0);
+                        setActivePageIndex(index > 0 ? index - 1 : 0);
                       }}
                     >
                       Delete Page

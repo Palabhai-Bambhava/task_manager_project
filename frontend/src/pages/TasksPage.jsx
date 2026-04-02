@@ -29,8 +29,9 @@ const TasksPage = () => {
   const fetchTasks = async () => {
     try {
       const res = await getTasks(selectedCompany?._id); 
-      const tableData = res.data.map((t) => ({
+      const tableData = res.data.map((t,index) => ({
         _id: t._id,
+        "#": index + 1,
         Title: t.title,
         Description: t.description,
         AssignedTo: t.assignedTo ? t.assignedTo.name : "Unassigned",
@@ -168,7 +169,7 @@ const TasksPage = () => {
     }
   };
 
-  const columns = ["Title", "Description", "AssignedTo", "Status", "CreatedAt"];
+  const columns = ["#","Title", "Description", "AssignedTo", "Status", "CreatedAt"];
 
   return (
     <>
